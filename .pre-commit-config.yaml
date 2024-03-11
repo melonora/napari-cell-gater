@@ -1,4 +1,16 @@
+fail_fast: false
+default_language_version:
+  python: python3
+default_stages:
+  - commit
+  - push
 repos:
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.8.0
+    hooks:
+      - id: mypy
+        additional_dependencies: [ numpy>=1.23 ]
+        exclude: docs
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.5.0
     hooks:
@@ -7,6 +19,11 @@ repos:
       - id: trailing-whitespace
         exclude: ^\.napari-hub/.*
       - id: check-yaml # checks for correct yaml syntax for github actions ex.
+      - id: check-toml
+      - id: check-merge-conflict
+        exclude: .*\.py
+      - id: mixed-line-ending
+        exclude: .*\.py
   - repo: https://github.com/charliermarsh/ruff-pre-commit
     rev: v0.3.2
     hooks:
@@ -19,9 +36,3 @@ repos:
     rev: v0.3.0
     hooks:
       - id: napari-plugin-checks
-  # https://mypy.readthedocs.io/en/stable/introduction.html
-  # you may wish to add this as well!
-  # - repo: https://github.com/pre-commit/mirrors-mypy
-  #   rev: v0.910-1
-  #   hooks:
-  #     - id: mypy
