@@ -13,6 +13,7 @@ from qtpy.QtWidgets import (
     QGridLayout,
     QLabel,
     QPushButton,
+    QSizePolicy,
     QWidget,
 )
 
@@ -29,6 +30,7 @@ class SampleWidget(QWidget):
         self._viewer = viewer
         self._model = DataModel()
         self.setLayout(QGridLayout())
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
         # Open sample directory dialog
         self.load_samples_button = QPushButton("Load regionprops dir")
