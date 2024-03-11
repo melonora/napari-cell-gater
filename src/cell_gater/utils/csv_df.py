@@ -30,6 +30,7 @@ def stack_csv_files(csv_dir: Path) -> pd.DataFrame | None:
         df_file = pd.read_csv(file)
         df_file["sample_id"] = file.stem
         df = pd.concat([df, df_file], ignore_index=True)
+    df["sample_id"] = df.sample_id.astype("category")
 
     return df
 
