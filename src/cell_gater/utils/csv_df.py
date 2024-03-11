@@ -2,8 +2,10 @@ from pathlib import Path
 
 import pandas as pd
 
+from cell_gater.utils.misc import napari_notification
 
-def stack_csv_files(csv_dir: Path) -> pd.DataFrame:
+
+def stack_csv_files(csv_dir: Path) -> pd.DataFrame | None:
     """
     Concatenate all csv files containing regionprops data into one dataframe.
 
@@ -17,21 +19,22 @@ def stack_csv_files(csv_dir: Path) -> pd.DataFrame:
     pd.DataFrame
         Dataframe containing the data of all regionprops csvs in the directory.
     """
-    csv_files = Path(csv_dir).glob("*.csv")
+    csv_files = list(Path(csv_dir).glob("*.csv"))
+    if len(csv_files) == 0:
+        napari_notification("No csv files found in the loaded regionprops directory. Please load the proper directory.")
+        return None
+
+    napari_notification(f"Loaded {len(csv_files)} regionprops csvs.")
     df = pd.DataFrame()
     for file in csv_files:
         df_file = pd.read_csv(file)
         df_file["sample_id"] = file.stem
         df = pd.concat([df, df_file], ignore_index=True)
 
-    # There is a bug in pandas so df_file["sample_id"].astype("category") does not work. Results in dtype object.
-    df["sample_id"] = df.sample_id.astype("category")
     return df
 
 
-def get_gates_from_regionprops_df(
-    path_to_gate: Path, df: pd.DataFrame, marker_subset: list[str]
-) -> pd.DataFrame:
+def get_gates_from_regionprops_df(path_to_gate: Path, df: pd.DataFrame, marker_subset: list[str]) -> pd.DataFrame:
     """
     Get gate dataframe.
 
@@ -39,7 +42,7 @@ def get_gates_from_regionprops_df(
     is created.
 
     Parameters
-    ---------
+    ----------
     path_to_gate: Path
         Path to the csv containing the gates for markers.
     df: pd.DataFrame
@@ -48,22 +51,16 @@ def get_gates_from_regionprops_df(
         The list of markers
     """
     if path_to_gate is not None:
-        assert (
-            path_to_gate.exists()
-        ), f"CSV path path_to_gate `{path_to_gate}` does not exist."
+        assert path_to_gate.exists(), f"CSV path path_to_gate `{path_to_gate}` does not exist."
         gates = pd.read_csv(path_to_gate)
     else:
-        gates = pd.DataFrame(
-            index=marker_subset, columns=df["sample_id"].unique()
-        )
+        gates = pd.DataFrame(index=marker_subset, columns=df["sample_id"].unique())
     return gates
 
 
-def get_markers_of_interest(
-    df: pd.DataFrame, up_to: str, subset: tuple[int, int] | None = None
-) -> list[str]:
+def get_markers_of_interest(df: pd.DataFrame, up_to: str, subset: tuple[int, int] | None = None) -> list[str]:
     """
-    Get the marker columns from a dataframe
+    Get the marker columns from a dataframe.
 
     Parameters
     ----------
@@ -84,10 +81,7 @@ def get_markers_of_interest(
 
     """
     subset_slice = (
-        slice(subset[0], subset[1])
-        if isinstance(subset, tuple)
-        and all(isinstance(i, int) for i in subset)
-        else subset
+        slice(subset[0], subset[1]) if isinstance(subset, tuple) and all(isinstance(i, int) for i in subset) else subset
     )
 
     # find column index of the column specified by up_to

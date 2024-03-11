@@ -12,18 +12,3 @@ contributions:
   widgets:
     - command: napari-cell-gater.SampleWidget
       display_name: load_sample_data
-  readers:
-    - command: napari-cell-gater.get_reader
-      accepts_directories: false
-      filename_patterns: ['*.npy']
-  writers:
-    - command: napari-cell-gater.write_multiple
-      layer_types: ['image*','labels*']
-      filename_extensions: []
-    - command: napari-cell-gater.write_single_image
-      layer_types: ['image']
-      filename_extensions: ['.npy']
-  sample_data:
-    - command: napari-cell-gater.make_sample_data
-      display_name: Multiplexed imaging cell gating
-      key: unique_id.1

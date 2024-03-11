@@ -32,28 +32,40 @@ class SampleWidget(QWidget):
         self.setLayout(QGridLayout())
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
+        load_label = QLabel("Load data:")
+        self.layout().addWidget(load_label, 0, 0)
         # Open sample directory dialog
         self.load_samples_button = QPushButton("Load regionprops dir")
         self.load_samples_button.clicked.connect(self._open_sample_dialog)
-        self.layout().addWidget(self.load_samples_button, 0, 0)
+        self.layout().addWidget(self.load_samples_button, 1, 0)
 
         # Open image directory dialog
         self.load_image_dir_button = QPushButton("Load image dir")
         self.load_image_dir_button.clicked.connect(self._open_image_dir_dialog)
-        self.layout().addWidget(self.load_image_dir_button, 0, 1)
+        self.layout().addWidget(self.load_image_dir_button, 1, 1)
 
         # Open mask directory dialog
         self.load_mask_dir_button = QPushButton("Load mask dir")
         self.load_mask_dir_button.clicked.connect(self._open_mask_dir_dialog)
-        self.layout().addWidget(self.load_mask_dir_button, 0, 2)
+        self.layout().addWidget(self.load_mask_dir_button, 1, 2)
 
+        # The lower bound marker column
         lower_col = QLabel("Select lowerbound marker column:")
         self.lower_bound_marker_col = QComboBox()
         if len(self.model.regionprops_df) > 0:
-            self.lower_bound_marker_col.addItems(self.model.regionprops_df.columns)
+            self.lower_bound_marker_col.addItems([None] + self.model.regionprops_df.columns)
         self.lower_bound_marker_col.currentTextChanged.connect(self._update_marker_widget)
         self.layout().addWidget(lower_col, 2, 0)
         self.layout().addWidget(self.lower_bound_marker_col, 3, 0)
+
+        # The upper bound marker column
+        upper_col = QLabel("Select upperbound marker column:")
+        self.upper_bound_marker_col = QComboBox()
+        if len(self.model.regionprops_df) > 0:
+            self.upper_bound_marker_col.addItems([None] + self.model.regionprops_df.columns)
+        self.upper_bound_marker_col.currentTextChanged.connect(self._update_marker_widget)
+        self.layout().addWidget(upper_col, 2, 1)
+        self.layout().addWidget(self.upper_bound_marker_col, 3, 1)
 
         # Dropdown of samples once directory is loaded
         selection_label = QLabel("Select sample:")
@@ -68,6 +80,7 @@ class SampleWidget(QWidget):
 
         self.model.events.regionprops_df.connect(self._set_samples_dropdown)
         self.model.events.regionprops_df.connect(self._set_marker_lowerbound)
+        self.model.events.regionprops_df.connect(self._set_marker_upperbound)
 
     @property
     def viewer(self) -> Viewer:
@@ -117,7 +130,7 @@ class SampleWidget(QWidget):
 
     def _set_image_paths(self, folder):
         self.model.image_paths = list(Path(folder).glob("*tif"))
-        napari_notification(f"{len(self.model.mask_paths)} paths of images loaded.")
+        napari_notification(f"{len(self.model.image_paths)} paths of images loaded.")
 
     def _set_mask_paths(self, folder):
         self.model.mask_paths = list(Path(folder).glob("*tif"))
@@ -127,18 +140,26 @@ class SampleWidget(QWidget):
         self.model.regionprops_df = stack_csv_files(folder)
 
     def _set_samples_dropdown(self, event: Any):
-        self.model.samples = list(self.model.regionprops_df["sample_id"].cat.categories)
+        if (region_props := self.model.regionprops_df) is not None:
+            self.model.samples = list(region_props["sample_id"].cat.categories)
 
-        # New directory loaded so we reload the dropdown items
-        self.sample_selection_dropdown.clear()
-        if len(self.model.samples) > 0:
-            self.sample_selection_dropdown.addItems([None])
-            self.sample_selection_dropdown.addItems(self.model.samples)
+            # New directory loaded so we reload the dropdown items
+            self.sample_selection_dropdown.clear()
+            if len(self.model.samples) > 0:
+                self.sample_selection_dropdown.addItems([None])
+                self.sample_selection_dropdown.addItems(self.model.samples)
 
     def _update_marker_widget(self):
         pass
 
     def _set_marker_lowerbound(self):
         self.lower_bound_marker_col.clear()
-        if len(self.model.regionprops_df) > 0:
-            self.lower_bound_marker_col.addItems(self.model.regionprops_df.columns)
+        region_props = self.model.regionprops_df
+        if region_props is not None and len(region_props) > 0:
+            self.lower_bound_marker_col.addItems(region_props.columns)
+
+    def _set_marker_upperbound(self):
+        self.upper_bound_marker_col.clear()
+        region_props = self.model.regionprops_df
+        if region_props is not None and len(region_props) > 0:
+            self.upper_bound_marker_col.addItems(region_props.columns)
