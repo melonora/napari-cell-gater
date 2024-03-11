@@ -12,25 +12,31 @@ target-version = ['py38', 'py39', 'py310']
 
 
 [tool.ruff]
-line-length = 79
-select = [
-    "E", "F", "W", #flake8
-    "UP", # pyupgrade
+line-length = 120
+lint.select = [
+    "D", # flake8-docstrings
     "I", # isort
-    "BLE", # flake8-blind-exception
-    "B", # flake8-bugbear
-    "A", # flake8-builtins
-    "C4", # flake8-comprehensions
-    "ISC", # flake8-implicit-str-concat
-    "G", # flake8-logging-format
-    "PIE", # flake8-pie
+    "E", # pycodestyle
+    "F", # pyflakes
+    "W", # pycodestyle
+    "Q", # flake8-quotes
     "SIM", # flake8-simplify
+    "TID",  # flake-8-tidy-imports
+    "NPY",  # NumPy-specific rules
+    "PT",  # flake8-pytest-style
+    "B", # flake8-bugbear
+    "UP", # pyupgrade
+    "C4", # flake8-comprehensions
+    "BLE", # flake8-blind-except
+    "T20",  # flake8-print
+    "RET", # flake8-raise
 ]
 lint.ignore = [
     "E501", # line too long. let black handle this
     "UP006", "UP007", # type annotation. As using magicgui require runtime type annotation then we disable this.
     "SIM117", # flake8-simplify - some of merged with statements are not looking great with black, reanble after drop python 3.9
 ]
+unfixable = ["B", "UP", "C4", "BLE", "T20", "RET"]
 
 exclude = [
     ".bzr",
@@ -55,4 +61,6 @@ exclude = [
 ]
 
 target-version = "py38"
-fix = true
+
+[tool.ruff.pydocstyle]
+convention = "numpy"
