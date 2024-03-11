@@ -6,30 +6,12 @@ visibility: public
 categories: ["Annotation", "Segmentation", "Acquisition"]
 contributions:
   commands:
-    - id: napari-cell-gater.get_reader
-      python_name: cell_gater._reader:napari_get_reader
-      title: Open data with Multiplexed imaging cell gating
-    - id: napari-cell-gater.write_multiple
-      python_name: cell_gater._writer:write_multiple
-      title: Save multi-layer data with Multiplexed imaging cell gating
-    - id: napari-cell-gater.write_single_image
-      python_name: cell_gater._writer:write_single_image
-      title: Save image data with Multiplexed imaging cell gating
-    - id: napari-cell-gater.make_sample_data
-      python_name: cell_gater._sample_data:make_sample_data
-      title: Load sample data from Multiplexed imaging cell gating
-    - id: napari-cell-gater.make_container_widget
-      python_name: cell_gater:ImageThreshold
-      title: Make threshold Container widget
-    - id: napari-cell-gater.make_magic_widget
-      python_name: cell_gater:threshold_magic_widget
-      title: Make threshold magic widget
-    - id: napari-cell-gater.make_function_widget
-      python_name: cell_gater:threshold_autogenerate_widget
-      title: Make threshold function widget
-    - id: napari-cell-gater.make_qwidget
-      python_name: cell_gater:ExampleQWidget
-      title: Make example QWidget
+    - id: napari-cell-gater.SampleWidget
+      python_name: cell_gater.widgets.sample_widget:SampleWidget
+      title: Load data for cell gating
+  widgets:
+    - command: napari-cell-gater.SampleWidget
+      display_name: load_sample_data
   readers:
     - command: napari-cell-gater.get_reader
       accepts_directories: false
@@ -45,13 +27,3 @@ contributions:
     - command: napari-cell-gater.make_sample_data
       display_name: Multiplexed imaging cell gating
       key: unique_id.1
-  widgets:
-    - command: napari-cell-gater.make_container_widget
-      display_name: Container Threshold
-    - command: napari-cell-gater.make_magic_widget
-      display_name: Magic Threshold
-    - command: napari-cell-gater.make_function_widget
-      autogenerate: true
-      display_name: Autogenerate Threshold
-    - command: napari-cell-gater.make_qwidget
-      display_name: Example QWidget

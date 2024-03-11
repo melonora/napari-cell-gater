@@ -1,25 +1,15 @@
+from importlib.metadata import version  # Python = 3.9
+
+__version__ = version("napari-cell-gater")
+
+from packaging.version import parse
+
 try:
-    from ._version import version as __version__
+    __full_version__ = parse(version(__name__))
+    __full_version__ = f"{__version__}+{__full_version__.local}" if __full_version__.local else __version__
 except ImportError:
-    __version__ = "unknown"
+    __full_version__ = __version__
 
-from ._reader import napari_get_reader
-from ._sample_data import make_sample_data
-from ._widget import (
-    ExampleQWidget,
-    ImageThreshold,
-    threshold_autogenerate_widget,
-    threshold_magic_widget,
-)
-from ._writer import write_multiple, write_single_image
+del version, parse
 
-__all__ = (
-    "napari_get_reader",
-    "write_single_image",
-    "write_multiple",
-    "make_sample_data",
-    "ExampleQWidget",
-    "ImageThreshold",
-    "threshold_autogenerate_widget",
-    "threshold_magic_widget",
-)
+from cell_gater.widgets.sample_widget import SampleWidget  # noqa: E402
