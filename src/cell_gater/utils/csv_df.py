@@ -35,11 +35,11 @@ def stack_csv_files(csv_dir: Path) -> pd.DataFrame | None:
     return df
 
 
-def get_gates_from_regionprops_df(path_to_gate: Path, df: pd.DataFrame, marker_subset: list[str]) -> pd.DataFrame:
+def get_gates_from_regionprops_df(path_to_gate: Path, df: pd.DataFrame, markers: list[str]) -> pd.DataFrame:
     """
     Get gate dataframe.
 
-    If path_to_gate is specified than the gate df is created by loading the csv into memory. Otherwise a new dataframe
+    If path_to_gate is specified then the gate df is created by loading the csv into memory. Otherwise a new dataframe
     is created.
 
     Parameters
@@ -48,14 +48,14 @@ def get_gates_from_regionprops_df(path_to_gate: Path, df: pd.DataFrame, marker_s
         Path to the csv containing the gates for markers.
     df: pd.DataFrame
         The stacked regionprops dataframe.
-    marker_subset: list[str]
+    markers: list[str]
         The list of markers
     """
     if path_to_gate is not None:
         assert path_to_gate.exists(), f"CSV path path_to_gate `{path_to_gate}` does not exist."
         gates = pd.read_csv(path_to_gate)
     else:
-        gates = pd.DataFrame(index=marker_subset, columns=df["sample_id"].unique())
+        gates = pd.DataFrame(index=markers, columns=df["sample_id"].unique())
     return gates
 
 
@@ -80,6 +80,14 @@ def get_markers_of_interest(df: pd.DataFrame, up_to: str, subset: tuple[int, int
     list[str]
         The marker names.
 
+    Discussion
+    ----------
+    We might want to filter out some markers that are usually not gated: 
+    the nuclear stains (DAPI/DNA/Hoechst) should be removed from the list (not sure if at this step or before)
+    In Cylinter, there was a congifg.yml parameter that denoted the list of markers to ignore. 
+    For now I think that just removing the nuclear stains is enough. I will do this on the get_markers_of_interest function.
+    Also an option is to take the markers.csv file from MCMICRO and use it to filter the markers.
+
     """
     subset_slice = (
         slice(subset[0], subset[1]) if isinstance(subset, tuple) and all(isinstance(i, int) for i in subset) else subset
@@ -88,4 +96,9 @@ def get_markers_of_interest(df: pd.DataFrame, up_to: str, subset: tuple[int, int
     # find column index of the column specified by up_to
     x_centroid_col = df.columns.get_loc(up_to)
     markers = df.columns[1:x_centroid_col]
-    return markers[subset_slice].tolist()
+    if subset_slice is not None:
+        markers = markers[subset_slice].tolist()
+    #remove nuclear stains
+    markers = [item for item in markers if not any(item.startswith(prefix) for prefix in ['DNA', 'DAPI', 'Hoechst'])]
+
+    return markers
