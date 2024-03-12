@@ -21,6 +21,10 @@ and review the napari docs for plugin developers:
 https://napari.org/stable/plugins/index.html
 -->
 
+This plugin is currently under heavy development. If you are interested in contributing, please create a fork. After
+cloning, create an environment and install using `pip install -e .[test]`. Afterwards, please install the `pre-commit`
+hook by running `pre-commit install` in the directory with the `.pre-commit-config.yaml`.
+
 ## Installation
 
 You can install `napari-cell-gater` via [pip]:
