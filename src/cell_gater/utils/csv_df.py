@@ -11,7 +11,7 @@ def stack_csv_files(csv_dir: Path) -> pd.DataFrame | None:
 
     Parameters
     ----------
-    csv_dir : Path
+    csv_dir : str
         Path to the directory containing the regionprops csvs
 
     Returns
@@ -19,7 +19,7 @@ def stack_csv_files(csv_dir: Path) -> pd.DataFrame | None:
     pd.DataFrame
         Dataframe containing the data of all regionprops csvs in the directory.
     """
-    csv_files = list(Path(csv_dir).glob("*.csv"))
+    csv_files = list(csv_dir.glob("*.csv"))
     if len(csv_files) == 0:
         napari_notification("No csv files found in the loaded regionprops directory. Please load the proper directory.")
         return None
@@ -82,9 +82,9 @@ def get_markers_of_interest(df: pd.DataFrame, up_to: str, subset: tuple[int, int
 
     Discussion
     ----------
-    We might want to filter out some markers that are usually not gated: 
+    We might want to filter out some markers that are usually not gated:
     the nuclear stains (DAPI/DNA/Hoechst) should be removed from the list (not sure if at this step or before)
-    In Cylinter, there was a congifg.yml parameter that denoted the list of markers to ignore. 
+    In Cylinter, there was a congifg.yml parameter that denoted the list of markers to ignore.
     For now I think that just removing the nuclear stains is enough. I will do this on the get_markers_of_interest function.
     Also an option is to take the markers.csv file from MCMICRO and use it to filter the markers.
 
@@ -98,7 +98,5 @@ def get_markers_of_interest(df: pd.DataFrame, up_to: str, subset: tuple[int, int
     markers = df.columns[1:x_centroid_col]
     if subset_slice is not None:
         markers = markers[subset_slice].tolist()
-    #remove nuclear stains
-    markers = [item for item in markers if not any(item.startswith(prefix) for prefix in ['DNA', 'DAPI', 'Hoechst'])]
-
-    return markers
+    # remove nuclear stains
+    return [item for item in markers if not any(item.startswith(prefix) for prefix in ["DNA", "DAPI", "Hoechst"])]
