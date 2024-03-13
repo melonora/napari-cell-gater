@@ -21,7 +21,12 @@ class DataModel:
     _lower_bound_marker: str | None = field(default=None, init=False)
     _upper_bound_marker: str | None = field(default=None, init=False)
     _markers: Sequence[str] = field(default_factory=list, init=False)
+
     _active_marker: str | None = field(default=None, init=False)
+    _active_sample: str | None = field(default=None, init=False)
+
+    _gates: pd.DataFrame = field(default_factory=pd.DataFrame, init=False)
+    _current_gate: float = field(default_factory=float, init=False)
 
     def __post_init__(self) -> None:
         """Allow fields in the dataclass to emit events when changed."""
