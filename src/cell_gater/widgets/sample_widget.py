@@ -158,27 +158,46 @@ class SampleWidget(QWidget):
         self.model.regionprops_df = stack_csv_files(Path(folder))
 
     def _set_dropdown_marker_lowerbound(self):
+        """Add items to dropdown menu for lowerbound marker.
+
+        This menu is a dropdown menu that responds to events of self.model.regionprops_df. When this changes it loads
+        all the columns of this dataframe as items in the listwidget if a dataframe iis currently loaded.
+        """
         self.lower_bound_marker_col.clear()
         region_props = self.model.regionprops_df
         if region_props is not None and len(region_props) > 0:
             self.lower_bound_marker_col.addItems(region_props.columns)
 
     def _set_dropdown_marker_upperbound(self):
+        """Add items to dropdown menu for upperbound marker.
+
+        This menu is a dropdown menu that responds to events of self.model.regionprops_df. When this changes it loads
+        all the columns of this dataframe as items in the listwidget if a dataframe iis currently loaded.
+        """
         self.upper_bound_marker_col.clear()
         region_props = self.model.regionprops_df
         if region_props is not None and len(region_props) > 0:
             self.upper_bound_marker_col.addItems(region_props.columns)
 
     def _update_model_lowerbound(self):
+        """Update the lowerbound marker in the data model upon change of text in the lowerbound marker column widget."""
         lower_bound_marker = self.lower_bound_marker_col.currentText()
         self.model.lower_bound_marker = lower_bound_marker
 
     def _update_model_upperbound(self):
+        """Update the upperbound marker in the data model upon change of text in the upperbound marker column widget."""
         upper_bound_marker = self.upper_bound_marker_col.currentText()
         self.model.upper_bound_marker = upper_bound_marker
 
     def _update_filter(self):
+        """Update marker filter upon text change of the filter field widget."""
         self.model.marker_filter = self.filter_field.text()
 
     def _validate(self):
+        """
+        Perform validation of the input data upon press of the validate button by the user.
+
+        This function checks whether all required input is in the data model and also filters the markers based on
+        the current value of the filter marker in the data model.
+        """
         pass
