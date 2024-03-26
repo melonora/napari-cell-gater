@@ -21,6 +21,7 @@ class DataModel:
     _lower_bound_marker: str | None = field(default=None, init=False)
     _upper_bound_marker: str | None = field(default=None, init=False)
     _markers: Sequence[str] = field(default_factory=list, init=False)
+    _marker_filter: str = field(default="dna,dapi", init=True)
 
     _active_marker: str | None = field(default=None, init=False)
     _active_sample: str | None = field(default=None, init=False)
@@ -109,6 +110,11 @@ class DataModel:
     def active_marker(self, marker: str) -> None:
         self._active_marker = marker
 
-    def validate(self):
-        """Validate the input data from the user provided through the SampleWidget."""
-        pass
+    @property
+    def marker_filter(self):
+        """The string filters separated by commas."""
+        return self._marker_filter
+
+    @marker_filter.setter
+    def marker_filter(self, marker_filter: str) -> None:
+        self._marker_filter = marker_filter

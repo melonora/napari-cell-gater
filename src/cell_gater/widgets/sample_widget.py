@@ -81,14 +81,19 @@ class SampleWidget(QWidget):
         self.layout().addWidget(upper_col, 2, 1)
         self.layout().addWidget(self.upper_bound_marker_col, 3, 1)
 
+        # Filter field for user to pass on strings to filter markers out.
         filter_label = QLabel("Marker column filters")
-        self.filter_field = QLineEdit("", placeholderText="Filter(s) separated by commas.")
+        self.filter_field = QLineEdit(
+            "",
+            placeholderText="Filter(s) separated by commas.",
+        )
         self.filter_field.editingFinished.connect(self._update_filter)
         self.layout().addWidget(filter_label, 4, 0)
         self.layout().addWidget(self.filter_field, 5, 0)
 
+        # Button to start validating all the input
         self.validate_button = QPushButton("Validate input")
-        self.validate_button.clicked.connect(self.model.validate)
+        self.validate_button.clicked.connect(self._validate)
         self.layout().addWidget(self.validate_button, 6, 0)
 
         self.model.events.regionprops_df.connect(self._set_dropdown_marker_lowerbound)
@@ -173,5 +178,7 @@ class SampleWidget(QWidget):
         self.model.upper_bound_marker = upper_bound_marker
 
     def _update_filter(self):
-        # TODO implement filter, add filter list to datamodel.
+        self.model.marker_filter = self.filter_field.text()
+
+    def _validate(self):
         pass
