@@ -31,7 +31,9 @@ You can install `napari-cell-gater` via [pip]:
 
     pip install napari-cell-gater
 
+## Visual Workflow 
 
+![Image Alt Text](/docs/Visual_Workflow_1.0.jpeg)
 
 ## How to use
 Writing this helps me organize my thoughts on what to do next
