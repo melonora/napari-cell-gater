@@ -200,4 +200,14 @@ class SampleWidget(QWidget):
         This function checks whether all required input is in the data model and also filters the markers based on
         the current value of the filter marker in the data model.
         """
-        pass
+        assert self.model.regionprops_df.shape != (0, 0), "No regionprops file or directory seems to be loaded."
+        assert len(self.model.image_paths) != 0, "No image file or directory seems to be loaded."
+        assert len(self.model.mask_paths) != 0, "No mask file or directory seems to be loaded."
+        assert len(self.model.image_paths) == len(
+            self.model.mask_paths
+        ), "Number of images and segmentation masks do not match."
+
+        image_paths_set = {i.stem for i in self.model.image_paths}
+        mask_paths_set = {i.stem for i in self.model.mask_paths}
+        if len(diff := image_paths_set.symmetric_difference(mask_paths_set)):
+            raise ValueError("Images and masks do not seem to match. Found ")

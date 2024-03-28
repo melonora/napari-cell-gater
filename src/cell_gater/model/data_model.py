@@ -22,6 +22,7 @@ class DataModel:
     _upper_bound_marker: str | None = field(default=None, init=False)
     _markers: Sequence[str] = field(default_factory=list, init=False)
     _marker_filter: str = field(default="dna,dapi", init=True)
+    _validated: bool = field(default=False, init=True)
 
     _active_marker: str | None = field(default=None, init=False)
     _active_sample: str | None = field(default=None, init=False)
@@ -31,11 +32,7 @@ class DataModel:
 
     def __post_init__(self) -> None:
         """Allow fields in the dataclass to emit events when changed."""
-        self.events = EmitterGroup(
-            source=self,
-            samples=Event,
-            regionprops_df=Event,
-        )
+        self.events = EmitterGroup(source=self, samples=Event, regionprops_df=Event, validated=Event)
 
     @property
     def samples(self):
@@ -118,3 +115,12 @@ class DataModel:
     @marker_filter.setter
     def marker_filter(self, marker_filter: str) -> None:
         self._marker_filter = marker_filter
+
+    @property
+    def validated(self):
+        return self._validated
+
+    @validated.setter
+    def validated(self, validated: bool) -> None:
+        self._validated = validated
+        self.events.validated()
