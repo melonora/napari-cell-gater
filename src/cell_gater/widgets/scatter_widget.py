@@ -94,9 +94,14 @@ class ScatterInputWidget(QWidget):
             self._mask = imread(mask_path)
 
     def _load_layers(self, marker_index):
+
         if self.model.active_sample != self._current_sample:
             self._current_sample = copy(self.model.active_sample)
-            self.viewer.add_labels(self._mask, name="mask_" + self.model.active_sample, opacity=0.4)
+            self.viewer.add_labels(
+                self._mask, 
+                name="mask_" + self.model.active_sample,
+                show=False, opacity=0.4
+            )
 
         self.viewer.add_image(
             self._image[marker_index],
