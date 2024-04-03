@@ -18,6 +18,7 @@ from qtpy.QtWidgets import (
     QSizePolicy,
     QVBoxLayout,
     QWidget,
+    QGridLayout,
 )
 
 from cell_gater.model.data_model import DataModel
@@ -29,7 +30,7 @@ class ScatterInputWidget(QWidget):
     def __init__(self, model: DataModel, viewer: Viewer) -> None:
         super().__init__()
 
-        self.setLayout(QVBoxLayout())
+        self.setLayout(QGridLayout())
         self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Maximum)
 
         self._model = model
@@ -46,16 +47,17 @@ class ScatterInputWidget(QWidget):
         self.sample_selection_dropdown.addItems(self.model.samples)
         self.sample_selection_dropdown.currentTextChanged.connect(self._on_sample_changed)
 
-        self.marker_label = QLabel("Marker label:")
+        marker_label = QLabel("Marker label:")
         self.marker_selection_dropdown = QComboBox()
         self.marker_selection_dropdown.addItems(self.model.markers)
         self.marker_selection_dropdown.currentTextChanged.connect(self._on_marker_changed)
 
         # self.scatter_canvas = PlotCanvas()
 
-        self.layout().addWidget(selection_label)
-        self.layout().addWidget(self.sample_selection_dropdown)
-        self.layout().addWidget(self.marker_selection_dropdown)
+        self.layout().addWidget(selection_label, 0, 0)
+        self.layout().addWidget(self.sample_selection_dropdown, 1, 0)
+        self.layout().addWidget(marker_label, 0, 1)
+        self.layout().addWidget(self.marker_selection_dropdown, 1, 1)
         # self.layout().addWidget(NavigationToolbar(self.gate_canvas, self))
 
         # we have to do this because initially the dropdowns did not change texts yet so these variables are still None.
