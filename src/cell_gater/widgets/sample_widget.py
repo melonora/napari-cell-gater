@@ -84,7 +84,7 @@ class SampleWidget(QWidget):
         self.layout().addWidget(self.upper_bound_marker_col, 3, 1)
 
         # Filter field for user to pass on strings to filter markers out.
-        filter_label = QLabel("Remove markers with prefix (default: DNA)")
+        filter_label = QLabel("Remove markers with prefix (default: DNA,DAPI)")
         self.filter_field = QLineEdit(
             "DNA, DAPI",
             placeholderText="Prefixes separated by commas.",
