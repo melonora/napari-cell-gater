@@ -51,12 +51,12 @@ class ScatterInputWidget(QWidget):
         self.marker_selection_dropdown.addItems(self.model.markers)
         self.marker_selection_dropdown.currentTextChanged.connect(self._on_marker_changed)
 
-        self.scatter_canvas = PlotCanvas()
+        # self.scatter_canvas = PlotCanvas()
 
         self.layout().addWidget(selection_label)
         self.layout().addWidget(self.sample_selection_dropdown)
         self.layout().addWidget(self.marker_selection_dropdown)
-        self.layout().addWidget(NavigationToolbar(self.gate_canvas, self))
+        # self.layout().addWidget(NavigationToolbar(self.gate_canvas, self))
 
         # we have to do this because initially the dropdowns did not change texts yet so these variables are still None.
         self.model.active_sample = self.sample_selection_dropdown.currentText()
@@ -153,13 +153,13 @@ class ScatterInputWidget(QWidget):
                 self.sample_selection_dropdown.addItems(self.model.samples)
 
 
-class PlotCanvas:
-    """The canvas class for the gating scatter plot."""
+# class PlotCanvas:
+#     """The canvas class for the gating scatter plot."""
 
-    def __init__(self):
-        self.fig = FigureCanvas(Figure())
-        self.fig.subplots_adjust(left=0.25, bottom=0.25)
-        self.ax = self.fig.subplots()
+#     def __init__(self):
+#         self.fig = FigureCanvas(Figure())
+#         self.fig.subplots_adjust(left=0.25, bottom=0.25)
+#         self.ax = self.fig.subplots()
 
     # def plot_scatter_plot(self) -> None:
     #     """Plot the scatter plot."""
