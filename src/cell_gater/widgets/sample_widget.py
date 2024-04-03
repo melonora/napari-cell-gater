@@ -19,7 +19,7 @@ from qtpy.QtWidgets import (
 from cell_gater.model.data_model import DataModel
 from cell_gater.utils.csv_df import stack_csv_files
 from cell_gater.utils.misc import napari_notification
-from cell_gater.widgets.scatter_widget import ScatterWidget
+from cell_gater.widgets.scatter_widget import ScatterInputWidget
 
 
 class SampleWidget(QWidget):
@@ -247,7 +247,7 @@ class SampleWidget(QWidget):
 
         napari_notification(f"Removed {n_markers - len(self.model.markers)} out of list of {n_markers}.")
 
-        self._scatter_widget = ScatterWidget(self.model, self.viewer)
+        self._scatter_widget = ScatterInputWidget(self.model, self.viewer)
         self.viewer.window.add_dock_widget(
             self._scatter_widget, name="cell_gater", area="right", menu=self._viewer.window.window_menu
         )
