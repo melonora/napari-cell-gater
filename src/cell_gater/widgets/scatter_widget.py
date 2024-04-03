@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from copy import copy
 
 from dask_image.imread import imread
@@ -71,12 +73,13 @@ class ScatterWidget(QWidget):
     def viewer(self, viewer: Viewer) -> None:
         self._viewer = viewer
 
-    def _read_data(self, sample) -> None:
-        image_path = self.model.sample_image_mapping[sample]
-        mask_path = self.model.sample_mask_mapping[sample]
+    def _read_data(self, sample: str | None) -> None:
+        if sample is not None:
+            image_path = self.model.sample_image_mapping[sample]
+            mask_path = self.model.sample_mask_mapping[sample]
 
-        self._image = imread(image_path)
-        self._mask = imread(mask_path)
+            self._image = imread(image_path)
+            self._mask = imread(mask_path)
 
     def _load_layers(self, marker_index):
         if self.model.active_sample != self._current_sample:
