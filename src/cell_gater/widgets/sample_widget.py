@@ -19,6 +19,7 @@ from qtpy.QtWidgets import (
 from cell_gater.model.data_model import DataModel
 from cell_gater.utils.csv_df import stack_csv_files
 from cell_gater.utils.misc import napari_notification
+from cell_gater.widgets.scatter_widget import ScatterWidget
 
 
 class SampleWidget(QWidget):
@@ -41,6 +42,7 @@ class SampleWidget(QWidget):
 
         """
         super().__init__()
+        self._scatter_widget = None
         self._viewer = viewer
         self._model = DataModel() if model is None else model
         self.setLayout(QGridLayout())
@@ -145,7 +147,7 @@ class SampleWidget(QWidget):
 
     def _set_image_paths(self, folder: str) -> None:
         """Set the image paths in the DataModel."""
-        types = ('*.tif', '*.tiff')  # the tuple of file types
+        types = ("*.tif", "*.tiff")  # the tuple of file types
         self.model.image_paths = []
         for ext in types:
             self.model.image_paths.extend(list(Path(folder).glob(ext)))
@@ -153,7 +155,7 @@ class SampleWidget(QWidget):
 
     def _set_mask_paths(self, folder: str) -> None:
         """Set the paths of the masks in the DataModel."""
-        types = ('*.tif', '*.tiff')  # the tuple of file types
+        types = ("*.tif", "*.tiff")  # the tuple of file types
         self.model.mask_paths = []
         for ext in types:
             self.model.mask_paths.extend(list(Path(folder).glob(ext)))
@@ -214,7 +216,36 @@ class SampleWidget(QWidget):
             self.model.mask_paths
         ), "Number of images and segmentation masks do not match."
 
+        # First check whether there is a difference between the file names without extension and then assign as samples
         image_paths_set = {i.stem for i in self.model.image_paths}
         mask_paths_set = {i.stem for i in self.model.mask_paths}
         if len(diff := image_paths_set.symmetric_difference(mask_paths_set)):
             raise ValueError(f"Images and masks do not seem to match. Found {','.join(diff)}")
+
+        # This allows to use the dropdowns to directly map to the paths for opening.
+        self.model.samples = image_paths_set
+        self.model.sample_image_mapping = {i.stem: i for i in self.model.image_paths}
+        self.model.sample_mask_mapping = {i.stem: i for i in self.model.mask_paths}
+
+        # This is to retrieve the correct markers with their index in the images
+        column_ls = list(self.model.regionprops_df.columns)
+        lowerbound_index = column_ls.index(self.model.lower_bound_marker)
+        upperbound_index = column_ls.index(self.model.upper_bound_marker)
+        marker_columns = column_ls[lowerbound_index : upperbound_index + 1]
+        self.model.markers = {marker: i for i, marker in enumerate(marker_columns)}
+        n_markers = len(self.model.markers)
+
+        for filter in self.model.marker_filter.split(","):
+            # Do this because changing length would cause errors when deleting in loop.
+            for marker in self.model.markers.copy():
+                if filter.lower() in marker.lower():
+                    del self.model.markers[marker]
+
+        napari_notification(f"Removed {n_markers - len(self.model.markers)} out of list of {n_markers}.")
+
+        self._scatter_widget = ScatterWidget(self.model, self.viewer)
+        self.viewer.window.add_dock_widget(
+            self._scatter_widget, name="cell_gater", area="right", menu=self._viewer.window.window_menu
+        )
+
+        self.model.validated = True
