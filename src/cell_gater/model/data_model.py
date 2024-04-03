@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Sequence
+from typing import Mapping, Sequence
 
 import pandas as pd
 from napari.utils.events import EmitterGroup, Event
@@ -17,6 +17,8 @@ class DataModel:
     _regionprops_df: pd.DataFrame = field(default_factory=pd.DataFrame, init=False)
     _regionprops_columns: Sequence[str] = field(default_factory=list, init=False)
     _image_paths: Sequence[Path] = field(default_factory=list, init=False)
+    _sample_image_mapping: dict[str, Path] = field(default_factory=dict, init=False)
+    _sample_mask_mapping: dict[str, Path] = field(default_factory=dict, init=False)
     _mask_paths: Sequence[Path] = field(default_factory=list, init=False)
     _lower_bound_marker: str | None = field(default=None, init=False)
     _upper_bound_marker: str | None = field(default=None, init=False)
@@ -33,6 +35,24 @@ class DataModel:
     def __post_init__(self) -> None:
         """Allow fields in the dataclass to emit events when changed."""
         self.events = EmitterGroup(source=self, samples=Event, regionprops_df=Event, validated=Event)
+
+    @property
+    def sample_image_mapping(self) -> Mapping[str, Path]:
+        """Mapping sample names to image paths."""
+        return self._sample_image_mapping
+
+    @sample_image_mapping.setter
+    def sample_image_mapping(self, mapping: dict[str, Path]) -> None:
+        self._sample_image_mapping = mapping
+
+    @property
+    def sample_mask_mapping(self) -> Mapping[str, Path]:
+        """Mapping of sample names to mask paths."""
+        return self._sample_mask_mapping
+
+    @sample_mask_mapping.setter
+    def sample_mask_mapping(self, mapping: dict[str, Path]) -> None:
+        self._sample_mask_mapping = mapping
 
     @property
     def samples(self):
@@ -118,6 +138,7 @@ class DataModel:
 
     @property
     def validated(self):
+        """Whether the data is validated."""
         return self._validated
 
     @validated.setter
