@@ -217,15 +217,19 @@ class SampleWidget(QWidget):
         ), "Number of images and segmentation masks do not match."
 
         # First check whether there is a difference between the file names without extension and then assign as samples
-        image_paths_set = {i.stem for i in self.model.image_paths}
-        mask_paths_set = {i.stem for i in self.model.mask_paths}
+        image_paths_set = {i.stem if ".ome" not in i.stem else i.stem.rstrip(".ome") for i in self.model.image_paths}
+        mask_paths_set = {i.stem if ".ome" not in i.stem else i.stem.rstrip(".ome") for i in self.model.mask_paths}
         if len(diff := image_paths_set.symmetric_difference(mask_paths_set)):
             raise ValueError(f"Images and masks do not seem to match. Found {','.join(diff)}")
 
         # This allows to use the dropdowns to directly map to the paths for opening.
         self.model.samples = image_paths_set
-        self.model.sample_image_mapping = {i.stem: i for i in self.model.image_paths}
-        self.model.sample_mask_mapping = {i.stem: i for i in self.model.mask_paths}
+        self.model.sample_image_mapping = {
+            i.stem.rstrip(".ome") if ".ome" in i.stem else i.stem: i for i in self.model.image_paths
+        }
+        self.model.sample_mask_mapping = {
+            i.stem.rstrip(".ome") if ".ome" in i.stem else i.stem: i for i in self.model.mask_paths
+        }
 
         # This is to retrieve the correct markers with their index in the images
         column_ls = list(self.model.regionprops_df.columns)
