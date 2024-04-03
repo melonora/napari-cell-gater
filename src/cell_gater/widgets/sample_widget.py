@@ -145,12 +145,19 @@ class SampleWidget(QWidget):
 
     def _set_image_paths(self, folder: str) -> None:
         """Set the image paths in the DataModel."""
-        self.model.image_paths = list(Path(folder).glob("*tif"))
+        types = ('*.tif', '*.tiff')  # the tuple of file types
+        self.model.image_paths = []
+        for ext in types:
+            self.model.image_paths.extend(list(Path(folder).glob(ext)))
         napari_notification(f"{len(self.model.image_paths)} paths of images loaded.")
 
     def _set_mask_paths(self, folder: str) -> None:
         """Set the paths of the masks in the DataModel."""
-        self.model.mask_paths = list(Path(folder).glob("*tif"))
+        types = ('*.tif', '*.tiff')  # the tuple of file types
+        self.model.mask_paths = []
+        for ext in types:
+            self.model.mask_paths.extend(list(Path(folder).glob(ext)))
+
         napari_notification(f"{len(self.model.mask_paths)} paths of masks loaded.")
 
     def _assign_regionprops_to_model(self, folder: str) -> None:
@@ -210,4 +217,4 @@ class SampleWidget(QWidget):
         image_paths_set = {i.stem for i in self.model.image_paths}
         mask_paths_set = {i.stem for i in self.model.mask_paths}
         if len(diff := image_paths_set.symmetric_difference(mask_paths_set)):
-            raise ValueError("Images and masks do not seem to match. Found ")
+            raise ValueError(f"Images and masks do not seem to match. Found {','.join(diff)}")
