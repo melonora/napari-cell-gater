@@ -128,6 +128,15 @@ class DataModel:
         self._active_marker = marker
 
     @property
+    def active_sample(self) -> str | None:
+        """The sample currently opened in the viewer."""
+        return self._active_sample
+
+    @active_sample.setter
+    def active_sample(self, sample: str) -> None:
+        self._active_sample = sample
+
+    @property
     def marker_filter(self):
         """The string filters separated by commas."""
         return self._marker_filter
