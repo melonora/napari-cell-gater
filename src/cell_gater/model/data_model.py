@@ -28,6 +28,7 @@ class DataModel:
 
     _active_marker: str | None = field(default=None, init=False)
     _active_sample: str | None = field(default=None, init=False)
+    _active_y_axis: str | None = field(default=None, init=False)
 
     _gates: pd.DataFrame = field(default_factory=pd.DataFrame, init=False)
     _current_gate: float = field(default_factory=float, init=False)
@@ -135,6 +136,15 @@ class DataModel:
     @active_sample.setter
     def active_sample(self, sample: str) -> None:
         self._active_sample = sample
+
+    @property
+    def active_y_axis(self) -> str | None:
+        """The marker currently used on y-axis for gating."""
+        return self._active_y_axis
+    
+    @active_y_axis.setter
+    def active_y_axis(self, column: str) -> None:
+        self._active_y_axis = column
 
     @property
     def marker_filter(self):
