@@ -18,6 +18,7 @@ from qtpy.QtWidgets import (
     QSizePolicy,
     QVBoxLayout,
     QWidget,
+    QGridLayout,
 )
 
 from cell_gater.model.data_model import DataModel
@@ -29,7 +30,7 @@ class ScatterInputWidget(QWidget):
     def __init__(self, model: DataModel, viewer: Viewer) -> None:
         super().__init__()
 
-        self.setLayout(QVBoxLayout())
+        self.setLayout(QGridLayout())
         self.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Maximum)
 
         self._model = model
@@ -46,17 +47,18 @@ class ScatterInputWidget(QWidget):
         self.sample_selection_dropdown.addItems(self.model.samples)
         self.sample_selection_dropdown.currentTextChanged.connect(self._on_sample_changed)
 
-        self.marker_label = QLabel("Marker label:")
+        marker_label = QLabel("Marker label:")
         self.marker_selection_dropdown = QComboBox()
         self.marker_selection_dropdown.addItems(self.model.markers)
         self.marker_selection_dropdown.currentTextChanged.connect(self._on_marker_changed)
 
-        self.scatter_canvas = PlotCanvas()
+        # self.scatter_canvas = PlotCanvas()
 
-        self.layout().addWidget(selection_label)
-        self.layout().addWidget(self.sample_selection_dropdown)
-        self.layout().addWidget(self.marker_selection_dropdown)
-        self.layout().addWidget(NavigationToolbar(self.gate_canvas, self))
+        self.layout().addWidget(selection_label, 0, 0)
+        self.layout().addWidget(self.sample_selection_dropdown, 1, 0)
+        self.layout().addWidget(marker_label, 0, 1)
+        self.layout().addWidget(self.marker_selection_dropdown, 1, 1)
+        # self.layout().addWidget(NavigationToolbar(self.gate_canvas, self))
 
         # we have to do this because initially the dropdowns did not change texts yet so these variables are still None.
         self.model.active_sample = self.sample_selection_dropdown.currentText()
@@ -92,9 +94,14 @@ class ScatterInputWidget(QWidget):
             self._mask = imread(mask_path)
 
     def _load_layers(self, marker_index):
+
         if self.model.active_sample != self._current_sample:
             self._current_sample = copy(self.model.active_sample)
-            self.viewer.add_labels(self._mask, name="mask_" + self.model.active_sample, opacity=0.4)
+            self.viewer.add_labels(
+                self._mask, 
+                name="mask_" + self.model.active_sample,
+                visible=False, opacity=0.4
+            )
 
         self.viewer.add_image(
             self._image[marker_index],
@@ -153,13 +160,13 @@ class ScatterInputWidget(QWidget):
                 self.sample_selection_dropdown.addItems(self.model.samples)
 
 
-class PlotCanvas:
-    """The canvas class for the gating scatter plot."""
+# class PlotCanvas:
+#     """The canvas class for the gating scatter plot."""
 
-    def __init__(self):
-        self.fig = FigureCanvas(Figure())
-        self.fig.subplots_adjust(left=0.25, bottom=0.25)
-        self.ax = self.fig.subplots()
+#     def __init__(self):
+#         self.fig = FigureCanvas(Figure())
+#         self.fig.subplots_adjust(left=0.25, bottom=0.25)
+#         self.ax = self.fig.subplots()
 
     # def plot_scatter_plot(self) -> None:
     #     """Plot the scatter plot."""
