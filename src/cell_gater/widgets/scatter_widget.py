@@ -100,7 +100,7 @@ class ScatterInputWidget(QWidget):
             self.viewer.add_labels(
                 self._mask, 
                 name="mask_" + self.model.active_sample,
-                show=False, opacity=0.4
+                visible=False, opacity=0.4
             )
 
         self.viewer.add_image(
