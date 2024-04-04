@@ -182,7 +182,7 @@ class ScatterInputWidget(QWidget):
         self.update_plot()
 
     def update_plot(self):
-        self.scatter_canvas.plot_scatter_plot(self.model)
+        self.scatter_canvas.plot_scatter_plot()
 
 
 class PlotCanvas():
