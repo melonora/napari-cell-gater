@@ -52,20 +52,35 @@ class ScatterInputWidget(QWidget):
         self.marker_selection_dropdown.addItems(self.model.markers)
         self.marker_selection_dropdown.currentTextChanged.connect(self._on_marker_changed)
 
-        # self.scatter_canvas = PlotCanvas()
+        choose_y_axis_label = QLabel("Choose Y-axis")
+        self.choose_y_axis_dropdown = QComboBox()
+        self.choose_y_axis_dropdown.addItems([None] + self.model.regionprops_df.columns)
+        self.choose_y_axis_dropdown.setCurrentText("Area")
+        self.choose_y_axis_dropdown.currentTextChanged.connect(self._on_y_axis_changed)
 
         self.layout().addWidget(selection_label, 0, 0)
         self.layout().addWidget(self.sample_selection_dropdown, 1, 0)
-        self.layout().addWidget(marker_label, 0, 1)
-        self.layout().addWidget(self.marker_selection_dropdown, 1, 1)
-        # self.layout().addWidget(NavigationToolbar(self.gate_canvas, self))
-
+        self.layout().addWidget(marker_label, 2, 0)
+        self.layout().addWidget(self.marker_selection_dropdown, 3, 0)
+        self.layout().addWidget(choose_y_axis_label, 4, 0)
+        self.layout().addWidget(self.choose_y_axis_dropdown, 5, 0)
+        
         # we have to do this because initially the dropdowns did not change texts yet so these variables are still None.
         self.model.active_sample = self.sample_selection_dropdown.currentText()
         self.model.active_marker = self.marker_selection_dropdown.currentText()
+        self.model.active_y_axis = self.choose_y_axis_dropdown.currentText()
 
         self._read_data(self.model.active_sample)
         self._load_layers(self.model.markers[self.model.active_marker])
+
+        #this has to go after active sample and marker are set
+        self.scatter_canvas = PlotCanvas(self.model)
+        # self.layout().addWidget(NavigationToolbar(self.gate_canvas, self))
+        self.layout().addWidget(self.scatter_canvas.fig, 6, 0)
+        # Update the plot initially
+        self.update_plot()
+        # the scatter plot is not updating when the gate is changed
+        # unsure what is happening here
 
     @property
     def model(self) -> DataModel:
@@ -122,6 +137,7 @@ class ScatterInputWidget(QWidget):
 
         self._read_data(self.model.active_sample)
         self._load_layers(self.model.markers[self.model.active_marker])
+        self.update_plot()
 
     def _clear_layers(self, clear_all: bool) -> None:
         """Remove all layers upon changing sample."""
@@ -147,6 +163,7 @@ class ScatterInputWidget(QWidget):
         self.model.active_marker = self.marker_selection_dropdown.currentText()
         self._clear_layers(clear_all=False)
         self._load_layers(self.model.markers[self.model.active_marker])
+        self.update_plot()
 
     def _set_samples_dropdown(self) -> None:
         """Set the items for the samples dropdown QComboBox."""
@@ -158,46 +175,61 @@ class ScatterInputWidget(QWidget):
             if len(self.model.samples) > 0:
                 self.sample_selection_dropdown.addItems([None])
                 self.sample_selection_dropdown.addItems(self.model.samples)
+    
+    def _on_y_axis_changed(self):
+        """Set active y-axis and update the scatter plot."""
+        self.model.active_y_axis = self.choose_y_axis_dropdown.currentText()
+        self.update_plot()
+
+    def update_plot(self):
+        self.scatter_canvas.plot_scatter_plot()
 
 
-# class PlotCanvas:
-#     """The canvas class for the gating scatter plot."""
+class PlotCanvas():
+    """The canvas class for the gating scatter plot."""
 
-#     def __init__(self):
-#         self.fig = FigureCanvas(Figure())
-#         self.fig.subplots_adjust(left=0.25, bottom=0.25)
-#         self.ax = self.fig.subplots()
+    def __init__(self, model: DataModel):
 
-    # def plot_scatter_plot(self) -> None:
-    #     """Plot the scatter plot."""
-    #     # check if sample and marker are selected
-    #     assert self.model.active_marker is not None
-    #     assert self.model.active_sample is not None
+        self.model = DataModel() if model is None else model
+        self.fig = FigureCanvas(Figure())
+        self.fig.figure.subplots_adjust(left=0.1, bottom=0.1)
+        self.ax = self.fig.figure.subplots()
+        self.ax.set_title("Scatter plot")
+        #run function to plot scatter plot
+        self.plot_scatter_plot(self.model)
+
+    @property
+    def model(self) -> DataModel:
+        """The dataclass model that stores information required for cell_gating."""
+        return self._model
+
+    @model.setter
+    def model(self, model: DataModel) -> None:
+        self._model = model
+
+    def plot_scatter_plot(self, model: DataModel) -> None:
+        """Plot the scatter plot."""
+        
+        # check if sample and marker are selected
+        assert self.model.active_marker is not None
+        assert self.model.active_sample is not None
+    
+        # get the data for the scatter plot
+        df = self.model.regionprops_df
+        df = df[df["sample_id"] == self.model.active_sample]
+
+        self.ax.scatter(
+            x=df[self.model.active_marker],
+            y=df[self.model.active_y_axis],  # later change to desired_y_axis
+            color="steelblue",
+            ec="white",
+            lw=0.1,
+            alpha=1.0,
+            s=80000 / int(df.shape[0]),
+        )
     #
-    #     # get the data for the scatter plot
-    #     df = self.model.regionprops_df
-    #     df = df[df["sample_id"] == self.model.active_sample]
-    #
-    #     # plot the scatter plot
-    #     fig, ax = plt.subplots()
-    #     # plot scatter on canvas axis
-    #
-    #     # if desired_y_axis is None:
-    #     #     desired_y_axis = "Area"
-    #     # should this be through a dropdown widget? or datamodel attribute?
-    #
-    #     ax.scatter(
-    #         x=df[self.active_marker],
-    #         y=df["Area"],  # later change to desired_y_axis
-    #         color="steelblue",
-    #         ec="white",
-    #         lw=0.1,
-    #         alpha=1.0,
-    #         s=80000 / int(df.shape[0]),
-    #     )
-    #
-    #     ax.set_ylabel("Area")  # later change to desired_y_axis
-    #     ax.set_xlabel(f"{self.active_marker} intensity")
+        self.ax.set_ylabel("Area")  # later change to desired_y_axis
+        self.ax.set_xlabel(f"{self.model.active_marker} intensity")
     #
     #     # add vertical line at current gate if it exists
     #     if self.model.current_gate is not None:
