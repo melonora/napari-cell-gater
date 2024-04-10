@@ -9,7 +9,6 @@ from matplotlib.backends.backend_qt5agg import (
 from matplotlib.backends.backend_qt5agg import (
     NavigationToolbar2QT as NavigationToolbar,
 )
-from matplotlib.figure import Figure
 from napari import Viewer
 from napari.layers import Image
 from qtpy.QtWidgets import (
@@ -20,9 +19,17 @@ from qtpy.QtWidgets import (
     QPushButton,
     QWidget,
     QGridLayout,
+    QSlider
 )
 
+from matplotlib.widgets import Slider
+from matplotlib.figure import Figure
+import matplotlib.pyplot as plt
+
 from cell_gater.model.data_model import DataModel
+from  cell_gater.utils.misc import napari_notification  
+
+
 
 class ScatterInputWidget(QWidget):
     """Widget for a scatter plot with markers on the x axis and any dtype column on the y axis."""
@@ -182,7 +189,7 @@ class PlotCanvas():
     def __init__(self, model: DataModel):
 
         self.model = DataModel() if model is None else model
-        self.fig = FigureCanvas(Figure())
+        self.fig = FigureCanvas(Figure()) 
         self.fig.figure.subplots_adjust(left=0.1, bottom=0.1)
         self.ax = self.fig.figure.subplots()
         self.ax.set_title("Scatter plot")
@@ -220,29 +227,37 @@ class PlotCanvas():
             alpha=1.0,
             s=80000 / int(df.shape[0]),
         )
-    #
+    
         self.ax.set_ylabel(self.model.active_y_axis)
         self.ax.set_xlabel(f"{self.model.active_marker} intensity")
-    #
+    
         # add vertical line at current gate if it exists
         if self.model.current_gate is not None:
             self.ax.axvline(x=self.model.current_gate, color="red", linewidth=1.0, linestyle="--")
-    #
-    #     minimum = df[self.model.active_marker].min()
-    #     maximum = df[self.model.active_marker].max()
-    #     value_initial = df[self.model.active_marker].median()
-    #     value_step = minimum / 100
-    #
-    #     # add slider as an axis, underneath the scatter plot
-    #     axSlider = fig.add_axes([0.1, 0.01, 0.8, 0.03], facecolor="yellow")
-    #     slider = Slider(axSlider, "Gate", minimum, maximum, valinit=value_initial, valstep=value_step, color="black")
-    #
-    #     def update_gate(val):
-    #         self.model.current_gate = val
-    #         ax.axvline(x=self.model.current_gate, color="red", linewidth=1.0, linestyle="--")
-    #         napari_notification(f"Gate set to {val}")
-    #
-    #     slider.on_changed(update_gate)
+    
+        minimum = df[self.model.active_marker].min()
+        maximum = df[self.model.active_marker].max()
+        value_initial = df[self.model.active_marker].median()
+        value_step = minimum / 100
+
+        ax_slider = self.fig.figure.add_axes([0.1, 0.01, 0.8, 0.03], facecolor="yellow")
+        slider = Slider(ax_slider, "Gate", minimum, maximum, valinit=value_initial, valstep=value_step, color="black")
+        slider.on_changed(self.update_gate)
+
+    def update_gate(self, val):
+        self.model.current_gate = val
+        self.ax.axvline(x=self.model.current_gate, color="red", linewidth=1.0, linestyle="--")
+        napari_notification(f"Gate set to {val}")
+    
+
+
+
+    
+    
+    
+    
+    
+    
     #
     # # TODO add the plot to a widget and display it
     #

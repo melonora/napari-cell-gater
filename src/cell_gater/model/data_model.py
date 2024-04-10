@@ -33,6 +33,15 @@ class DataModel:
     _gates: pd.DataFrame = field(default_factory=pd.DataFrame, init=False)
     _current_gate: float = field(default_factory=float, init=False)
 
+    @property
+    def current_gate(self) -> float:
+        """The current gate value."""
+        return self._current_gate
+    
+    @current_gate.setter
+    def current_gate(self, value: float) -> None:
+        self._current_gate = value
+
     def __post_init__(self) -> None:
         """Allow fields in the dataclass to emit events when changed."""
         self.events = EmitterGroup(source=self, samples=Event, regionprops_df=Event, validated=Event)
