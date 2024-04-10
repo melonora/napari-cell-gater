@@ -54,7 +54,7 @@ class ScatterInputWidget(QWidget):
 
         choose_y_axis_label = QLabel("Choose Y-axis")
         self.choose_y_axis_dropdown = QComboBox()
-        self.choose_y_axis_dropdown.addItems([None] + self.model.regionprops_df.columns)
+        self.choose_y_axis_dropdown.addItems(self.model.regionprops_df.columns)
         self.choose_y_axis_dropdown.setCurrentText("Area")
         self.choose_y_axis_dropdown.currentTextChanged.connect(self._on_y_axis_changed)
 
