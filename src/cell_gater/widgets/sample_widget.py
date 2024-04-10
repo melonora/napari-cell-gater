@@ -58,12 +58,12 @@ class SampleWidget(QWidget):
         # Open image directory dialog
         self.load_image_dir_button = QPushButton("Load image dir")
         self.load_image_dir_button.clicked.connect(self._open_image_dir_dialog)
-        self.layout().addWidget(self.load_image_dir_button, 1, 1)
+        self.layout().addWidget(self.load_image_dir_button, 2, 0)
 
         # Open mask directory dialog
         self.load_mask_dir_button = QPushButton("Load mask dir")
         self.load_mask_dir_button.clicked.connect(self._open_mask_dir_dialog)
-        self.layout().addWidget(self.load_mask_dir_button, 1, 2)
+        self.layout().addWidget(self.load_mask_dir_button, 3, 0)
 
         # The lower bound marker column dropdown
         lower_col = QLabel("Select lowerbound marker column:")
@@ -71,8 +71,9 @@ class SampleWidget(QWidget):
         if len(self.model.regionprops_df) > 0:
             self.lower_bound_marker_col.addItems([None] + self.model.regionprops_df.columns)
         self.lower_bound_marker_col.currentTextChanged.connect(self._update_model_lowerbound)
-        self.layout().addWidget(lower_col, 2, 0)
-        self.layout().addWidget(self.lower_bound_marker_col, 3, 0)
+
+        self.layout().addWidget(lower_col, 4, 0)
+        self.layout().addWidget(self.lower_bound_marker_col, 5, 0)
 
         # The upper bound marker column dropdown
         upper_col = QLabel("Select upperbound marker column:")
@@ -80,8 +81,8 @@ class SampleWidget(QWidget):
         if len(self.model.regionprops_df) > 0:
             self.upper_bound_marker_col.addItems([None] + self.model.regionprops_df.columns)
         self.upper_bound_marker_col.currentTextChanged.connect(self._update_model_upperbound)
-        self.layout().addWidget(upper_col, 2, 1)
-        self.layout().addWidget(self.upper_bound_marker_col, 3, 1)
+        self.layout().addWidget(upper_col, 6, 0)
+        self.layout().addWidget(self.upper_bound_marker_col, 7, 0)
 
         # Filter field for user to pass on strings to filter markers out.
         filter_label = QLabel("Remove markers with prefix (default: DNA,DAPI)")
@@ -90,13 +91,13 @@ class SampleWidget(QWidget):
             placeholderText="Prefixes separated by commas.",
         )
         self.filter_field.editingFinished.connect(self._update_filter)
-        self.layout().addWidget(filter_label, 4, 0)
-        self.layout().addWidget(self.filter_field, 5, 0)
+        self.layout().addWidget(filter_label, 8, 0)
+        self.layout().addWidget(self.filter_field, 9, 0)
 
         # Button to start validating all the input
         self.validate_button = QPushButton("Validate input")
         self.validate_button.clicked.connect(self._validate)
-        self.layout().addWidget(self.validate_button, 6, 0)
+        self.layout().addWidget(self.validate_button, 10, 0)
 
         self.model.events.regionprops_df.connect(self._set_dropdown_marker_lowerbound)
         self.model.events.regionprops_df.connect(self._set_dropdown_marker_upperbound)
