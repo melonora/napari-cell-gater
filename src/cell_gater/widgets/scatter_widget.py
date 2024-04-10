@@ -182,6 +182,8 @@ class ScatterInputWidget(QWidget):
         self.update_plot()
 
     def update_plot(self):
+        #clear the plot
+        self.scatter_canvas.ax.clear()
         self.scatter_canvas.plot_scatter_plot()
 
 
