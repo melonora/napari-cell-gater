@@ -7,10 +7,6 @@ from typing import Mapping, Sequence
 import pandas as pd
 from napari.utils.events import EmitterGroup, Event
 
-import sys
-from loguru import logger
-logger.add(sys.stdout, format="<green>{time:HH:mm:ss.SS}</green> | <level>{level}</level> | DATAMODEL | {message}")
-
 @dataclass
 class DataModel:
     """Model containing all necessary fields for gating."""

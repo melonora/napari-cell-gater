@@ -32,7 +32,8 @@ from  cell_gater.utils.misc import napari_notification
 import numpy as np
 import sys
 from loguru import logger
-logger.add(sys.stdout, format="<green>{time:HH:mm:ss.SS}</green> | <level>{level}</level> | SCATTERWIDGET | {message}")
+logger.remove()
+logger.add(sys.stdout, format="<green>{time:HH:mm:ss.SS}</green> | <level>{level}</level> | {message}")
 
 #TODO Critical issue with getting data from self.model.regionprops_df[self.model.active_marker]
 # The data selecting is weird, I think that the DNA columns are not being removed from the model.regionprops_df
@@ -110,7 +111,7 @@ class ScatterInputWidget(QWidget):
 
         self.scatter_canvas = PlotCanvas(self.model)
         self.layout().addWidget(self.scatter_canvas.fig, 7, 0)
-        self.update_plot()
+        # self.update_plot()
 
         #maybe should do the same for the slider as the plotcanvas 
 
@@ -124,9 +125,11 @@ class ScatterInputWidget(QWidget):
 
 
     def get_min_max_median_step(self) -> tuple:
-        min = self.model.regionprops_df[self.model.active_marker].min()
-        max = self.model.regionprops_df[self.model.active_marker].max()
-        init = self.model.regionprops_df[self.model.active_marker].median()
+        df = self.model.regionprops_df
+        df = df[df["sample_id"] == self.model.active_sample]
+        min = df[self.model.active_marker].min()
+        max = df[self.model.active_marker].max()
+        init = df[self.model.active_marker].median()
         step = min / 100
         return min, max, init, step
 
@@ -148,13 +151,9 @@ class ScatterInputWidget(QWidget):
         self.scatter_canvas.fig.draw()
 
     def _load_images_and_scatter_plot(self):
-        logger.info(f"Loading images and scatter plot for {self.model.active_sample} and {self.model.active_marker}.")
-
         self._clear_layers(clear_all=True)
         self._read_data(self.model.active_sample)
         self._load_layers(self.model.markers[self.model.active_marker])
-        
-        logger.debug(f"loading layers for {self.model.active_marker} in {self.model.markers}")
         logger.debug(f"loading index {self.model.markers[self.model.active_marker]}")
         self.update_plot()
         self.update_slider()
@@ -276,48 +275,35 @@ class PlotCanvas():
         self._model = model
 
     def plot_scatter_plot(self, model: DataModel) -> None:
-        """Plot the scatter plot."""
-        
-        # check if sample and marker are selected
         assert self.model.active_marker is not None
         assert self.model.active_sample is not None
     
-        # get the data for the scatter plot
         df = self.model.regionprops_df
         df = df[df["sample_id"] == self.model.active_sample]
-
-        # self.model.active_y_axis = "Area"
+        
+        logger.debug(f"Plotting scatter plot for {self.model.active_sample} and {self.model.active_marker}.")
 
         self.ax.scatter(
             x=df[self.model.active_marker],
-            y=df[self.model.active_y_axis],  # later change to desired_y_axis
+            y=df[self.model.active_y_axis],
             color="steelblue",
             ec="white",
             lw=0.1,
             alpha=1.0,
             s=80000 / int(df.shape[0]),
         )
-    
+        # Set x-axis limits
+        self.ax.set_xlim(df[self.model.active_marker].min(), df[self.model.active_marker].max())
         self.ax.set_ylabel(self.model.active_y_axis)
         self.ax.set_xlabel(f"{self.model.active_marker} intensity")
     
-        # add vertical line at current gate if it exists
-        if self.model.current_gate is not None:
+        logger.debug(f"The current gate is {self.model.current_gate}.")
+        if self.model.current_gate > 0.0:
             self.ax.axvline(x=self.model.current_gate, color="red", linewidth=1.0, linestyle="--")
-    
-    #     minimum = df[self.model.active_marker].min()
-    #     maximum = df[self.model.active_marker].max()
-    #     value_initial = df[self.model.active_marker].median()
-    #     value_step = minimum / 100
+        else:
+            self.ax.axvline(x=1, color="red", linewidth=1.0, linestyle="--")
+            
 
-    #     ax_slider = self.fig.figure.add_axes([0.1, 0.01, 0.8, 0.03], facecolor="yellow")
-    #     slider = Slider(ax_slider, "Gate", minimum, maximum, valinit=value_initial, valstep=value_step, color="black")
-    #     slider.on_changed(self.update_gate)
-
-    # def update_gate(self, val):
-    #     self.model.current_gate = val
-    #     self.ax.axvline(x=self.model.current_gate, color="red", linewidth=1.0, linestyle="--")
-    #     napari_notification(f"Gate set to {val}")
     
     # # TODO add the plot to a widget and display it
     #
