@@ -1,28 +1,6 @@
-def _on_marker_changed(self):
-    """Handle marker change event."""
-    self.model.active_marker = self.marker_selection_dropdown.currentText()
-    # Update slider properties
-    self.update_slider_properties()
+# gates should be a dataframe where
+# Column 1 is sample_id
+# Column 2 is marker_id
+# Column 3 is gate #default just gate
+# if extra gates desired, Columns 4... are gate_1, gate_2, etc
 
-def _on_sample_changed(self):
-    """Handle sample change event."""
-    self.model.active_sample = self.sample_selection_dropdown.currentText()
-    # Update slider properties
-    self.update_slider_properties()
-
-def update_slider_properties(self):
-    """Update slider properties based on the current data."""
-    min, max, _, step = self.get_min_max_median_step()
-    self.slider.valmin = min
-    self.slider.valmax = max
-    self.slider.valstep = step
-    self.slider.set_val(self.model.current_gate)  # Set the slider value to current_gate
-
-def slider_changed(self, val):
-    """Handle slider value change event."""
-    # Remove previous vertical line
-    for line in self.scatter_canvas.ax.lines:
-        line.remove()
-    self.model.current_gate = val
-    self.scatter_canvas.ax.axvline(x=self.model.current_gate, color="red", linewidth=1.0, linestyle="--")
-    self.scatter_canvas.fig.canvas.draw()

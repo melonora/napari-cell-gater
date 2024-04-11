@@ -9,6 +9,12 @@ from matplotlib.backends.backend_qt5agg import (
 from matplotlib.backends.backend_qt5agg import (
     NavigationToolbar2QT as NavigationToolbar,
 )
+
+from napari.utils.history import (
+    get_open_history,
+    update_open_history,
+)
+
 from napari import Viewer
 from napari.layers import Image
 from PyQt5.QtCore import Qt
@@ -20,7 +26,8 @@ from qtpy.QtWidgets import (
     QPushButton,
     QWidget,
     QGridLayout,
-    QSlider
+    QSlider,
+    QFileDialog
 )
 
 from matplotlib.widgets import Slider
@@ -30,7 +37,10 @@ import matplotlib.pyplot as plt
 from cell_gater.model.data_model import DataModel
 from  cell_gater.utils.misc import napari_notification  
 import numpy as np
+import pandas as pd
+from itertools import product
 import sys
+import os
 from loguru import logger
 logger.remove()
 logger.add(sys.stdout, format="<green>{time:HH:mm:ss.SS}</green> | <level>{level}</level> | {message}")
@@ -111,18 +121,88 @@ class ScatterInputWidget(QWidget):
 
         self.scatter_canvas = PlotCanvas(self.model)
         self.layout().addWidget(self.scatter_canvas.fig, 7, 0)
-        # self.update_plot()
-
-        #maybe should do the same for the slider as the plotcanvas 
 
         self.slider_figure = Figure(figsize=(5, 1))
         self.slider_canvas = FigureCanvas(self.slider_figure)
         self.slider_ax = self.slider_figure.add_subplot(111)
-        min, max, init, step = self.get_min_max_median_step()
-        self.slider = Slider(self.slider_ax, "Gate", min, max, valinit=init, valstep=step, color="black")
-        self.slider.on_changed(self.slider_changed)
+        self.update_slider()
         self.layout().addWidget(self.slider_canvas, 9, 0)
 
+        # plot points button
+        plot_points_button = QPushButton("Plot Points")
+        plot_points_button.clicked.connect(self.plot_points)
+
+        # Initialize gates dataframe 
+        sample_marker_combinations = list(product(
+            self.model.regionprops_df['sample_id'].unique(), 
+            self.model.markers
+        ))
+        self.model.gates = pd.DataFrame(sample_marker_combinations, columns=['sample_id', 'marker_id'])
+        self.model.gates['gate_value'] = float(0)
+
+        # add button to save gate
+        save_gate_button = QPushButton("Save Gate")
+        save_gate_button.clicked.connect(self.save_gate)
+        self.layout().addWidget(save_gate_button, 11, 0)
+
+        load_gates_button = QPushButton("Load Gates Dataframe")
+        load_gates_button.clicked.connect(self.load_gates_dataframe)
+        self.layout().addWidget(load_gates_button, 12, 0)
+
+        save_gates_dataframe_button = QPushButton("Save Gates Dataframe and exit")
+        save_gates_dataframe_button.clicked.connect(self.save_gates_dataframe)
+        self.layout().addWidget(save_gates_dataframe_button, 13, 0)
+
+
+    ######## FUNCTIONS ########
+
+    ### GATES DATAFRAME INPUT OUTPUT ###
+
+    def load_gates_dataframe(self):
+        file_path, _ = self._file_dialog()
+        if file_path:
+            self.model.gates = pd.read_csv(file_path)
+        self.model.gates['sample_id'] = self.model.gates['sample_id'].astype(str)
+        # check if dataframe has samples and markers
+        assert 'sample_id' in self.model.gates.columns
+        assert 'marker_id' in self.model.gates.columns
+        assert 'gate_value' in self.model.gates.columns
+        # check if dataframe has the same samples and markers as the regionprops_df
+        assert set(self.model.gates['sample_id'].unique()) == set(self.model.regionprops_df['sample_id'].unique())
+        assert set(self.model.gates['marker_id'].unique()) == set(self.model.markers)
+    
+    def save_gates_dataframe(self):
+        self.model.gates.to_csv("gates.csv", index=False)
+        napari_notification("Gates saved to gates.csv. Exiting cell_gater.")
+        logger.info("Gates saved to gates.csv. Exiting cell_gater.")
+        self.viewer.close()
+
+    def save_gate(self):
+        if self.model.current_gate == 0:
+            napari_notification("Gate not saved, please select a gate value.")
+        if self.access_gate() == self.model.current_gate:
+            napari_notification("No changes detected.")
+        if self.access_gate() != self.model.current_gate:
+            napari_notification(f"Old gate {self.access_gate().round(2)} overwritten to {self.model.current_gate.round(2)}")
+        self.model.gates.loc[
+            (self.model.gates['sample_id'] == self.model.active_sample) & 
+            (self.model.gates['marker_id'] == self.model.active_marker), 
+            'gate_value'] = self.model.current_gate
+        assert self.access_gate() == self.model.current_gate
+        logger.debug(f"Gate saved: {self.model.current_gate}")
+
+    def access_gate(self):
+        assert self.model.active_sample is not None
+        assert self.model.active_marker is not None
+        gate_value = self.model.gates.loc[
+            (self.model.gates['sample_id'] == self.model.active_sample) & 
+            (self.model.gates['marker_id'] == self.model.active_marker), 
+            'gate_value'].values[0]
+        assert isinstance(gate_value, float)
+        return gate_value
+
+
+    #### SLIDER FUNCTIONS ####
 
     def get_min_max_median_step(self) -> tuple:
         df = self.model.regionprops_df
@@ -248,6 +328,20 @@ class ScatterInputWidget(QWidget):
         """Set active y-axis and update the scatter plot."""
         self.model.active_y_axis = self.choose_y_axis_dropdown.currentText()
         self.update_plot()
+
+    def _file_dialog(self):
+        """Open dialog for a user to select a file."""
+        dlg = QFileDialog()
+        hist = get_open_history()
+        dlg.setHistory(hist)
+        options = QFileDialog.Options()
+        return dlg.getOpenFileName(
+            self,
+            "Select file",
+            hist[0],
+            "CSV Files (*.csv)",
+            options=options,
+        )
 
 class PlotCanvas():
     """The canvas class for the gating scatter plot."""
