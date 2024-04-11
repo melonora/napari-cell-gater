@@ -135,7 +135,7 @@ class ScatterInputWidget(QWidget):
 
     def slider_changed(self, val):
         self.model._current_gate = val
-        self.scatter_canvas.ax.axvline(x=self.model.current_gate, color="red", linewidth=1.0, linestyle="--")
+        self.scatter_canvas.update_vertical_line(val)
         self.scatter_canvas.fig.draw() 
 
     def update_slider(self):
@@ -249,9 +249,6 @@ class ScatterInputWidget(QWidget):
         self.model.active_y_axis = self.choose_y_axis_dropdown.currentText()
         self.update_plot()
 
-    
-
-
 class PlotCanvas():
     """The canvas class for the gating scatter plot."""
 
@@ -302,6 +299,10 @@ class PlotCanvas():
             self.ax.axvline(x=self.model.current_gate, color="red", linewidth=1.0, linestyle="--")
         else:
             self.ax.axvline(x=1, color="red", linewidth=1.0, linestyle="--")
+    
+    def update_vertical_line(self, x_position):
+        """Update the position of the vertical line."""
+        self.ax.lines[0].set_xdata(x_position)
             
 
     

@@ -33,6 +33,15 @@ class DataModel:
     _current_gate: float = field(default_factory=float, init=False)
 
     @property
+    def gates(self):
+        """The gates dataframe."""
+        return self._gates
+    
+    @gates.setter
+    def gates(self, gates: pd.DataFrame) -> None:
+        self._gates = gates
+
+    @property
     def current_gate(self) -> float:
         """The current gate value."""
         return self._current_gate
