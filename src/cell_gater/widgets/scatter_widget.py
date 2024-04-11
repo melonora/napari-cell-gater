@@ -30,6 +30,24 @@ import matplotlib.pyplot as plt
 from cell_gater.model.data_model import DataModel
 from  cell_gater.utils.misc import napari_notification  
 import numpy as np
+import sys
+from loguru import logger
+logger.add(sys.stdout, format="<green>{time:HH:mm:ss.SS}</green> | <level>{level}</level> | SCATTERWIDGET | {message}")
+
+#TODO Critical issue with getting data from self.model.regionprops_df[self.model.active_marker]
+# The data selecting is weird, I think that the DNA columns are not being removed from the model.regionprops_df
+# causing a shift.. perhaps we should create a filtered dataframe.. 
+# still not sure why if we are using the column header string to access marker specific data
+
+#tracing it back
+# after some manual exploration, it seems that channel calling is bringing one channel after the desired one. 
+# Channel 10 is calling channel 11.
+
+# the index used to load images comes from csv columns
+# index in images is 0-based
+# Two things have to be done:
+# Remove CellID and morphological features from the markers list, even for dropdown
+# correct the index used to load images
 
 
 
@@ -44,6 +62,10 @@ class ScatterInputWidget(QWidget):
 
         self._model = model
         self._viewer = viewer
+
+        logger.debug("ScatterInputWidget initialized")
+        logger.debug(f"Model regionprops_df shape: {self.model.regionprops_df.shape}")
+        logger.debug(f"Model regionprops_df columns: {self.model.regionprops_df.columns}")
 
         # Reason for setting current sample here as well is, so we can check whether we have to load a new mask.
         self._current_sample = None
@@ -90,6 +112,8 @@ class ScatterInputWidget(QWidget):
         self.layout().addWidget(self.scatter_canvas.fig, 7, 0)
         self.update_plot()
 
+        #maybe should do the same for the slider as the plotcanvas 
+
         self.slider_figure = Figure(figsize=(5, 1))
         self.slider_canvas = FigureCanvas(self.slider_figure)
         self.slider_ax = self.slider_figure.add_subplot(111)
@@ -108,12 +132,32 @@ class ScatterInputWidget(QWidget):
 
     def slider_changed(self, val):
         self.model._current_gate = val
+        self.scatter_canvas.ax.axvline(x=self.model.current_gate, color="red", linewidth=1.0, linestyle="--")
+        self.scatter_canvas.fig.draw() 
+
+    def update_slider(self):
+        min, max, init, step = self.get_min_max_median_step()
+        self.slider_ax.clear()
+        self.slider = Slider(self.slider_ax, "Gate", min, max, valinit=init, valstep=step, color="black")
+        self.slider.on_changed(self.slider_changed)
+        self.slider_canvas.draw()
+
+    def update_plot(self):
+        self.scatter_canvas.ax.clear()
+        self.scatter_canvas.plot_scatter_plot(self.model)
+        self.scatter_canvas.fig.draw()
 
     def _load_images_and_scatter_plot(self):
+        logger.info(f"Loading images and scatter plot for {self.model.active_sample} and {self.model.active_marker}.")
+
         self._clear_layers(clear_all=True)
         self._read_data(self.model.active_sample)
         self._load_layers(self.model.markers[self.model.active_marker])
+        
+        logger.debug(f"loading layers for {self.model.active_marker} in {self.model.markers}")
+        logger.debug(f"loading index {self.model.markers[self.model.active_marker]}")
         self.update_plot()
+        self.update_slider()
 
     @property
     def model(self) -> DataModel:
@@ -134,8 +178,11 @@ class ScatterInputWidget(QWidget):
         self._viewer = viewer
 
     def _read_data(self, sample: str | None) -> None:
+        logger.info(f"Reading data for sample {sample}.")
         if sample is not None:
+            logger.debug(f"Reading image from {self.model.sample_image_mapping[sample]}.")
             image_path = self.model.sample_image_mapping[sample]
+            logger.debug(f"Reading mask from {self.model.sample_mask_mapping[sample]}.")
             mask_path = self.model.sample_mask_mapping[sample]
 
             self._image = imread(image_path)
@@ -147,17 +194,21 @@ class ScatterInputWidget(QWidget):
         # FOR NOW
         # if self.model.active_sample != self._current_sample:
         #     self._current_sample = copy(self.model.active_sample)
+        logger.debug(f"_load_layers(self, {marker_index})")
+
         self.viewer.add_labels(
             self._mask, 
             name="mask_" + self.model.active_sample,
             visible=False, opacity=0.4
         )
+        logger.debug(f"Added mask for {self.model.active_sample}.")
 
         self.viewer.add_image(
             self._image[marker_index],
             name=self.model.active_marker + "_" + self.model.active_sample,
             blending="additive",
         )
+        logger.debug(f"Added image: marker_index {marker_index} of the image with shape {self._image.shape}. ")
 
     def _on_sample_changed(self):
         self.model.active_sample = self.sample_selection_dropdown.currentText()
@@ -199,10 +250,7 @@ class ScatterInputWidget(QWidget):
         self.model.active_y_axis = self.choose_y_axis_dropdown.currentText()
         self.update_plot()
 
-    def update_plot(self):
-        self.scatter_canvas.ax.clear()
-        self.scatter_canvas.plot_scatter_plot(self.model)
-        self.scatter_canvas.fig.draw()
+    
 
 
 class PlotCanvas():

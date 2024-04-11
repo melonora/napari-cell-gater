@@ -21,6 +21,9 @@ from cell_gater.utils.csv_df import stack_csv_files
 from cell_gater.utils.misc import napari_notification
 from cell_gater.widgets.scatter_widget import ScatterInputWidget
 
+import sys
+from loguru import logger
+logger.add(sys.stdout, format="<green>{time:HH:mm:ss.SS}</green> | <level>{level}</level> | SAMPLEWIDGET | {message}")
 
 class SampleWidget(QWidget):
     """Sample widget for loading required data."""
