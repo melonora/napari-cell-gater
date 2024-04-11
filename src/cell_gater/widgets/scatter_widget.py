@@ -14,7 +14,7 @@ from napari.utils.history import (
     get_open_history,
     update_open_history,
 )
-
+import napari
 from napari import Viewer
 from napari.layers import Image
 from PyQt5.QtCore import Qt
@@ -129,8 +129,9 @@ class ScatterInputWidget(QWidget):
         self.layout().addWidget(self.slider_canvas, 9, 0)
 
         # plot points button
-        plot_points_button = QPushButton("Plot Points")
-        plot_points_button.clicked.connect(self.plot_points)
+        # plot_points_button = QPushButton("Plot Points")
+        # plot_points_button.clicked.connect(self.plot_points)
+        # self.layout().addWidget(plot_points_button, 10, 0)
 
         # Initialize gates dataframe 
         sample_marker_combinations = list(product(
@@ -155,6 +156,39 @@ class ScatterInputWidget(QWidget):
 
 
     ######## FUNCTIONS ########
+
+    ### PLOT POINTS ###
+
+    # def plot_points(self):
+    #     """Plot positive cells in Napari."""
+    #     assert self.model.active_sample is not None
+    #     assert self.model.active_marker is not None
+
+    #     #check if point layer exists, if so remove it
+    #     for layer in self.viewer.layers:
+    #         # Check if the layer is a point layer
+    #         if isinstance(layer, napari.layers.Points):
+    #             # Remove the point layer
+    #             self.viewer.remove_layer(layer)
+
+    #     df = self.model.regionprops_df
+    #     df = df[df["sample_id"] == self.model.active_sample]
+    
+    #     self.viewer.add_points(
+    #         df[df[self.model.active_marker] > self.model.current_gate][["X_centroid", "Y_centroid"]],
+    #         name=f"{self.model.current_gate} and its positive cells",
+    #         face_color="red",
+    #         edge_color="black",
+    #         size=15,
+    #     )
+    
+    def plot_points_button(self):
+        """Plot points button."""
+        self.plot_points_button = QPushButton("Plot Points")
+        self.plot_points_button.clicked.connect(self.plot_points)
+        self.layout().addWidget(self.plot_points_button, 1, 2)  # not sure where to put this button
+
+
 
     ### GATES DATAFRAME INPUT OUTPUT ###
 
@@ -397,33 +431,3 @@ class PlotCanvas():
     def update_vertical_line(self, x_position):
         """Update the position of the vertical line."""
         self.ax.lines[0].set_xdata(x_position)
-            
-
-    
-    # # TODO add the plot to a widget and display it
-    #
-    # def plot_points(self, model: DataModel) -> None:
-    #     """Plot positive cells in Napari."""
-    #     if self.model.active_marker is not None:
-    #         marker = self.model.active_marker
-    #     if self.model.active_sample is not None:
-    #         sample = self.model.active_sample
-    #
-    #     viewer = self.model.viewer
-    #     df = self.model.regionprops_df
-    #     df = df[df["sample_id"] == self.model.active_sample]
-    #     gate = self.model.gates.loc[marker, sample]
-    #
-    #     viewer.add_points(
-    #         df[df[marker] > gate][["X_centroid", "Y_centroid"]],
-    #         name=f"{gate} and its positive cells",
-    #         face_color="red",
-    #         edge_color="black",
-    #         size=15,
-    #     )
-    #
-    # def plot_points_button(self):
-    #     """Plot points button."""
-    #     self.plot_points_button = QPushButton("Plot Points")
-    #     self.plot_points_button.clicked.connect(self.plot_points)
-    #     self.layout().addWidget(self.plot_points_button, 1, 2)  # not sure where to put this button
