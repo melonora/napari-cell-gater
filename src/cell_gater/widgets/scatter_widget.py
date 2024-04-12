@@ -45,18 +45,14 @@ from loguru import logger
 logger.remove()
 logger.add(sys.stdout, format="<green>{time:HH:mm:ss.SS}</green> | <level>{level}</level> | {message}")
 
-#Essential features
-#TODO Plot points button
 
 #Good to have features
-#TODO Warn users from using CellID in markers
-#TODO Plot DNA channel in the layers added
-#TODO Dynamic loading of markers, without reloading masks or DNA channel
-#TODO Save space by putting buttons in the same rows 
+#TODO Dynamic loading of markers, without reloading masks or DNA channel, so deprecate Load Sample and Marker button
 
-#Ideas to implement
+#Ideas to maybe implement
 #TODO log axis options for scatter plot
-
+#TODO dynamic plotting of points on top of created polygons
+#TODO save plots as images for QC, perhaps when saving gates run plotting function to go through all samples and markers and save plots
 
 class ScatterInputWidget(QWidget):
     """Widget for a scatter plot with markers on the x axis and any dtype column on the y axis."""
@@ -285,10 +281,8 @@ class ScatterInputWidget(QWidget):
 
     def _load_layers(self, marker_index):
 
-        # FOR NOW
         # if self.model.active_sample != self._current_sample:
         #     self._current_sample = copy(self.model.active_sample)
-
 
         #TODO let user decide which is their DNA channel
         self.viewer.add_image(
