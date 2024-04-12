@@ -45,21 +45,17 @@ from loguru import logger
 logger.remove()
 logger.add(sys.stdout, format="<green>{time:HH:mm:ss.SS}</green> | <level>{level}</level> | {message}")
 
-#TODO Critical issue with getting data from self.model.regionprops_df[self.model.active_marker]
-# The data selecting is weird, I think that the DNA columns are not being removed from the model.regionprops_df
-# causing a shift.. perhaps we should create a filtered dataframe.. 
-# still not sure why if we are using the column header string to access marker specific data
+#Essential features
+#TODO Plot points button
 
-#tracing it back
-# after some manual exploration, it seems that channel calling is bringing one channel after the desired one. 
-# Channel 10 is calling channel 11.
+#Good to have features
+#TODO Warn users from using CellID in markers
+#TODO Plot DNA channel in the layers added
+#TODO Dynamic loading of markers, without reloading masks or DNA channel
+#TODO Save space by putting buttons in the same rows 
 
-# the index used to load images comes from csv columns
-# index in images is 0-based
-# Two things have to be done:
-# Remove CellID and morphological features from the markers list, even for dropdown
-# correct the index used to load images
-
+#Ideas to implement
+#TODO log axis options for scatter plot
 
 
 class ScatterInputWidget(QWidget):
@@ -150,7 +146,7 @@ class ScatterInputWidget(QWidget):
         load_gates_button.clicked.connect(self.load_gates_dataframe)
         self.layout().addWidget(load_gates_button, 12, 0)
 
-        save_gates_dataframe_button = QPushButton("Save Gates Dataframe and exit")
+        save_gates_dataframe_button = QPushButton("Save Gates Dataframe")
         save_gates_dataframe_button.clicked.connect(self.save_gates_dataframe)
         self.layout().addWidget(save_gates_dataframe_button, 13, 0)
 
@@ -159,28 +155,28 @@ class ScatterInputWidget(QWidget):
 
     ### PLOT POINTS ###
 
-    # def plot_points(self):
-    #     """Plot positive cells in Napari."""
-    #     assert self.model.active_sample is not None
-    #     assert self.model.active_marker is not None
+    def plot_points(self):
+        """Plot positive cells in Napari."""
+        assert self.model.active_sample is not None
+        assert self.model.active_marker is not None
 
-    #     #check if point layer exists, if so remove it
-    #     for layer in self.viewer.layers:
-    #         # Check if the layer is a point layer
-    #         if isinstance(layer, napari.layers.Points):
-    #             # Remove the point layer
-    #             self.viewer.remove_layer(layer)
+        #check if point layer exists, if so remove it
+        for layer in self.viewer.layers:
+            # Check if the layer is a point layer
+            if isinstance(layer, napari.layers.Points):
+                # Remove the point layer
+                self.viewer.remove_layer(layer)
 
-    #     df = self.model.regionprops_df
-    #     df = df[df["sample_id"] == self.model.active_sample]
+        df = self.model.regionprops_df
+        df = df[df["sample_id"] == self.model.active_sample]
     
-    #     self.viewer.add_points(
-    #         df[df[self.model.active_marker] > self.model.current_gate][["X_centroid", "Y_centroid"]],
-    #         name=f"{self.model.current_gate} and its positive cells",
-    #         face_color="red",
-    #         edge_color="black",
-    #         size=15,
-    #     )
+        self.viewer.add_points(
+            df[df[self.model.active_marker] > self.model.current_gate][["X_centroid", "Y_centroid"]],
+            name=f"{self.model.current_gate} and its positive cells",
+            face_color="red",
+            edge_color="black",
+            size=15,
+        )
     
     def plot_points_button(self):
         """Plot points button."""
@@ -189,8 +185,9 @@ class ScatterInputWidget(QWidget):
         self.layout().addWidget(self.plot_points_button, 1, 2)  # not sure where to put this button
 
 
-
+    ####################################
     ### GATES DATAFRAME INPUT OUTPUT ###
+    ####################################
 
     def load_gates_dataframe(self):
         file_path, _ = self._file_dialog()
@@ -206,10 +203,11 @@ class ScatterInputWidget(QWidget):
         assert set(self.model.gates['marker_id'].unique()) == set(self.model.markers)
     
     def save_gates_dataframe(self):
-        self.model.gates.to_csv("gates.csv", index=False)
-        napari_notification("Gates saved to gates.csv. Exiting cell_gater.")
-        logger.info("Gates saved to gates.csv. Exiting cell_gater.")
-        self.viewer.close()
+        options = QFileDialog.Options()
+        fileName, _ = QFileDialog.getSaveFileName(self, "Save Gates Dataframe", "", "CSV Files (*.csv);;All Files (*)", options=options)
+        if fileName:
+            self.model.gates.to_csv(fileName, index=False)
+            print("File saved to:", fileName)
 
     def save_gate(self):
         if self.model.current_gate == 0:
@@ -235,8 +233,9 @@ class ScatterInputWidget(QWidget):
         assert isinstance(gate_value, float)
         return gate_value
 
-
+    ##########################
     #### SLIDER FUNCTIONS ####
+    ##########################
 
     def get_min_max_median_step(self) -> tuple:
         df = self.model.regionprops_df
