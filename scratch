@@ -1,0 +1,6 @@
+# gates should be a dataframe where
+# Column 1 is sample_id
+# Column 2 is marker_id
+# Column 3 is gate #default just gate
+# if extra gates desired, Columns 4... are gate_1, gate_2, etc
+

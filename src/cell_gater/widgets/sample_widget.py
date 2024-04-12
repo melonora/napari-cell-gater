@@ -21,7 +21,6 @@ from cell_gater.utils.csv_df import stack_csv_files
 from cell_gater.utils.misc import napari_notification
 from cell_gater.widgets.scatter_widget import ScatterInputWidget
 
-
 class SampleWidget(QWidget):
     """Sample widget for loading required data."""
 
@@ -53,17 +52,17 @@ class SampleWidget(QWidget):
         # Open sample directory dialog
         self.load_samples_button = QPushButton("Load regionprops dir")
         self.load_samples_button.clicked.connect(self._open_sample_dialog)
-        self.layout().addWidget(self.load_samples_button, 1, 0)
+        self.layout().addWidget(self.load_samples_button, 0, 1)
 
         # Open image directory dialog
         self.load_image_dir_button = QPushButton("Load image dir")
         self.load_image_dir_button.clicked.connect(self._open_image_dir_dialog)
-        self.layout().addWidget(self.load_image_dir_button, 1, 1)
+        self.layout().addWidget(self.load_image_dir_button, 0, 2)
 
         # Open mask directory dialog
         self.load_mask_dir_button = QPushButton("Load mask dir")
         self.load_mask_dir_button.clicked.connect(self._open_mask_dir_dialog)
-        self.layout().addWidget(self.load_mask_dir_button, 1, 2)
+        self.layout().addWidget(self.load_mask_dir_button, 0, 3)
 
         # The lower bound marker column dropdown
         lower_col = QLabel("Select lowerbound marker column:")
@@ -71,8 +70,8 @@ class SampleWidget(QWidget):
         if len(self.model.regionprops_df) > 0:
             self.lower_bound_marker_col.addItems([None] + self.model.regionprops_df.columns)
         self.lower_bound_marker_col.currentTextChanged.connect(self._update_model_lowerbound)
-        self.layout().addWidget(lower_col, 2, 0)
-        self.layout().addWidget(self.lower_bound_marker_col, 3, 0)
+        self.layout().addWidget(lower_col, 1, 0, 1, 2)
+        self.layout().addWidget(self.lower_bound_marker_col, 1, 2, 1, 2)
 
         # The upper bound marker column dropdown
         upper_col = QLabel("Select upperbound marker column:")
@@ -80,8 +79,8 @@ class SampleWidget(QWidget):
         if len(self.model.regionprops_df) > 0:
             self.upper_bound_marker_col.addItems([None] + self.model.regionprops_df.columns)
         self.upper_bound_marker_col.currentTextChanged.connect(self._update_model_upperbound)
-        self.layout().addWidget(upper_col, 2, 1)
-        self.layout().addWidget(self.upper_bound_marker_col, 3, 1)
+        self.layout().addWidget(upper_col, 2, 0, 1, 2)
+        self.layout().addWidget(self.upper_bound_marker_col, 2, 2, 1, 2)
 
         # Filter field for user to pass on strings to filter markers out.
         filter_label = QLabel("Remove markers with prefix (default: DNA,DAPI)")
@@ -90,16 +89,21 @@ class SampleWidget(QWidget):
             placeholderText="Prefixes separated by commas.",
         )
         self.filter_field.editingFinished.connect(self._update_filter)
-        self.layout().addWidget(filter_label, 4, 0)
-        self.layout().addWidget(self.filter_field, 5, 0)
+        self.layout().addWidget(filter_label, 3, 0, 1 ,2)
+        self.layout().addWidget(self.filter_field, 3, 3)
 
         # Button to start validating all the input
         self.validate_button = QPushButton("Validate input")
         self.validate_button.clicked.connect(self._validate)
-        self.layout().addWidget(self.validate_button, 6, 0)
+        self.layout().addWidget(self.validate_button, 4, 0, 1, 4)
 
         self.model.events.regionprops_df.connect(self._set_dropdown_marker_lowerbound)
         self.model.events.regionprops_df.connect(self._set_dropdown_marker_upperbound)
+        
+        #set default bounds
+        
+        
+
 
     @property
     def viewer(self) -> Viewer:
@@ -176,6 +180,7 @@ class SampleWidget(QWidget):
         region_props = self.model.regionprops_df
         if region_props is not None and len(region_props) > 0:
             self.lower_bound_marker_col.addItems(region_props.columns)
+        self.lower_bound_marker_col.setCurrentIndex(1) # Skip the cell id column
 
     def _set_dropdown_marker_upperbound(self):
         """Add items to dropdown menu for upperbound marker.
@@ -187,6 +192,13 @@ class SampleWidget(QWidget):
         region_props = self.model.regionprops_df
         if region_props is not None and len(region_props) > 0:
             self.upper_bound_marker_col.addItems(region_props.columns)
+            
+        #TODO set default to column before "X_centroid"
+        # This does not work
+        # if "X_centroid" in list(self.model.regionprops_df.columns):
+        #     self.upper_bound_marker_col.setCurrentIndex(
+        #         self.model.regionprops_df.columns.index("X_centroid")-1 )
+        
 
     def _update_model_lowerbound(self):
         """Update the lowerbound marker in the data model upon change of text in the lowerbound marker column widget."""

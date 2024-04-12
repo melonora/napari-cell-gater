@@ -7,7 +7,6 @@ from typing import Mapping, Sequence
 import pandas as pd
 from napari.utils.events import EmitterGroup, Event
 
-
 @dataclass
 class DataModel:
     """Model containing all necessary fields for gating."""
@@ -32,6 +31,24 @@ class DataModel:
 
     _gates: pd.DataFrame = field(default_factory=pd.DataFrame, init=False)
     _current_gate: float = field(default_factory=float, init=False)
+
+    @property
+    def gates(self):
+        """The gates dataframe."""
+        return self._gates
+    
+    @gates.setter
+    def gates(self, gates: pd.DataFrame) -> None:
+        self._gates = gates
+
+    @property
+    def current_gate(self) -> float:
+        """The current gate value."""
+        return self._current_gate
+    
+    @current_gate.setter
+    def current_gate(self, value: float) -> None:
+        self._current_gate = value
 
     def __post_init__(self) -> None:
         """Allow fields in the dataclass to emit events when changed."""
