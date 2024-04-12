@@ -100,12 +100,12 @@ class ScatterInputWidget(QWidget):
         self.choose_y_axis_dropdown.currentTextChanged.connect(self._on_y_axis_changed)
 
         self.layout().addWidget(selection_label, 0, 0)
-        self.layout().addWidget(self.sample_selection_dropdown, 1, 0)
-        self.layout().addWidget(marker_label, 2, 0)
-        self.layout().addWidget(self.marker_selection_dropdown, 3, 0)
-        self.layout().addWidget(apply_button, 4, 0)
-        self.layout().addWidget(choose_y_axis_label, 5, 0)
-        self.layout().addWidget(self.choose_y_axis_dropdown, 6, 0)
+        self.layout().addWidget(self.sample_selection_dropdown, 0, 1)
+        self.layout().addWidget(marker_label, 1, 0)
+        self.layout().addWidget(self.marker_selection_dropdown, 1, 1)
+        self.layout().addWidget(apply_button, 2, 0)
+        self.layout().addWidget(choose_y_axis_label, 3, 0)
+        self.layout().addWidget(self.choose_y_axis_dropdown, 3, 1)
 
         # we have to do this because initially the dropdowns did not change texts yet so these variables are still None.
         self.model.active_sample = self.sample_selection_dropdown.currentText()
