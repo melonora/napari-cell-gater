@@ -101,11 +101,11 @@ class ScatterInputWidget(QWidget):
 
         self.layout().addWidget(selection_label, 0, 0)
         self.layout().addWidget(self.sample_selection_dropdown, 0, 1)
-        self.layout().addWidget(marker_label, 1, 0)
-        self.layout().addWidget(self.marker_selection_dropdown, 1, 1)
-        self.layout().addWidget(apply_button, 2, 0)
-        self.layout().addWidget(choose_y_axis_label, 3, 0)
-        self.layout().addWidget(self.choose_y_axis_dropdown, 3, 1)
+        self.layout().addWidget(marker_label, 0, 2)
+        self.layout().addWidget(self.marker_selection_dropdown, 0, 3)
+        self.layout().addWidget(apply_button, 1, 0, 1, 4)
+        self.layout().addWidget(choose_y_axis_label, 2, 0, 1, 2)
+        self.layout().addWidget(self.choose_y_axis_dropdown, 2, 2, 1, 2)
 
         # we have to do this because initially the dropdowns did not change texts yet so these variables are still None.
         self.model.active_sample = self.sample_selection_dropdown.currentText()
@@ -115,19 +115,21 @@ class ScatterInputWidget(QWidget):
         self._read_data(self.model.active_sample)
         self._load_layers(self.model.markers[self.model.active_marker])
 
+        # scatter plot
         self.scatter_canvas = PlotCanvas(self.model)
-        self.layout().addWidget(self.scatter_canvas.fig, 7, 0)
+        self.layout().addWidget(self.scatter_canvas.fig, 3, 0, 1, 4)
 
+        # slider    
         self.slider_figure = Figure(figsize=(5, 1))
         self.slider_canvas = FigureCanvas(self.slider_figure)
         self.slider_ax = self.slider_figure.add_subplot(111)
         self.update_slider()
-        self.layout().addWidget(self.slider_canvas, 9, 0)
+        self.layout().addWidget(self.slider_canvas, 4, 0, 1, 4)
 
         # plot points button
-        # plot_points_button = QPushButton("Plot Points")
-        # plot_points_button.clicked.connect(self.plot_points)
-        # self.layout().addWidget(plot_points_button, 10, 0)
+        plot_points_button = QPushButton("Plot Points")
+        plot_points_button.clicked.connect(self.plot_points)
+        self.layout().addWidget(plot_points_button, 5,0,1,1)
 
         # Initialize gates dataframe 
         sample_marker_combinations = list(product(
@@ -137,18 +139,18 @@ class ScatterInputWidget(QWidget):
         self.model.gates = pd.DataFrame(sample_marker_combinations, columns=['sample_id', 'marker_id'])
         self.model.gates['gate_value'] = float(0)
 
-        # add button to save gate
+        # gate buttons
         save_gate_button = QPushButton("Save Gate")
         save_gate_button.clicked.connect(self.save_gate)
-        self.layout().addWidget(save_gate_button, 11, 0)
+        self.layout().addWidget(save_gate_button, 5, 1, 1, 1)
 
         load_gates_button = QPushButton("Load Gates Dataframe")
         load_gates_button.clicked.connect(self.load_gates_dataframe)
-        self.layout().addWidget(load_gates_button, 12, 0)
+        self.layout().addWidget(load_gates_button, 5, 2, 1, 1)
 
         save_gates_dataframe_button = QPushButton("Save Gates Dataframe")
         save_gates_dataframe_button.clicked.connect(self.save_gates_dataframe)
-        self.layout().addWidget(save_gates_dataframe_button, 13, 0)
+        self.layout().addWidget(save_gates_dataframe_button, 5, 3, 1, 1)
 
 
     ######## FUNCTIONS ########
