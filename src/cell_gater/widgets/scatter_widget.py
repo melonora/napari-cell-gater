@@ -16,6 +16,7 @@ from napari.utils.history import (
 )
 import napari
 from napari import Viewer
+from napari.layers import Points
 from napari.layers import Image
 from PyQt5.QtCore import Qt
 from qtpy.QtWidgets import (
@@ -155,8 +156,6 @@ class ScatterInputWidget(QWidget):
     ### PLOT POINTS ###
     ###################
 
-    #TODO keep adding point layers to the viewer with simple names, and hide old ones
-        #TODO how to list layers, filter to points layers, and hide them
     #TODO dynamic plotting of points on top of created polygons
 
     def plot_points(self):
@@ -166,7 +165,11 @@ class ScatterInputWidget(QWidget):
 
         df = self.model.regionprops_df
         df = df[df["sample_id"] == self.model.active_sample]
-    
+
+        for layer in self.viewer.layers:
+            if isinstance(layer, Points):
+                layer.visible = False
+
         self.viewer.add_points(
             df[df[self.model.active_marker] > self.model.current_gate][["Y_centroid", "X_centroid"]],
             name=f"Gate: {round(self.model.current_gate)}  {self.model.active_sample} {self.model.active_marker}",
@@ -265,8 +268,6 @@ class ScatterInputWidget(QWidget):
         logger.debug(f"loading index {self.model.markers[self.model.active_marker]}")
         self.update_plot()
         self.update_slider()
-
-    
 
     def _read_data(self, sample: str | None) -> None:
         logger.info(f"Reading data for sample {sample}.")

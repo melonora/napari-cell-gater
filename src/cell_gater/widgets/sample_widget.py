@@ -228,6 +228,8 @@ class SampleWidget(QWidget):
             self.model.mask_paths
         ), "Number of images and segmentation masks do not match."
 
+        #TODO what happens when upperbound is before lowerbound?
+
         # First check whether there is a difference between the file names without extension and then assign as samples
         image_paths_set = {i.stem if ".ome" not in i.stem else i.stem.rstrip(".ome") for i in self.model.image_paths}
         mask_paths_set = {i.stem if ".ome" not in i.stem else i.stem.rstrip(".ome") for i in self.model.mask_paths}
