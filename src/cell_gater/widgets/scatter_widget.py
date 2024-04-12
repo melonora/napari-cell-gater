@@ -153,39 +153,32 @@ class ScatterInputWidget(QWidget):
         self.layout().addWidget(save_gates_dataframe_button, 5, 3, 1, 1)
 
 
-    ######## FUNCTIONS ########
-
+    ########################### FUNCTIONS ###########################
+    
+    ###################
     ### PLOT POINTS ###
+    ###################
+
+    #TODO keep adding point layers to the viewer with simple names, and hide old ones
+        #TODO how to list layers, filter to points layers, and hide them
+    #TODO dynamic plotting of points on top of created polygons
 
     def plot_points(self):
         """Plot positive cells in Napari."""
         assert self.model.active_sample is not None
         assert self.model.active_marker is not None
 
-        #check if point layer exists, if so remove it
-        for layer in self.viewer.layers:
-            # Check if the layer is a point layer
-            if isinstance(layer, napari.layers.Points):
-                # Remove the point layer
-                self.viewer.remove_layer(layer)
-
         df = self.model.regionprops_df
         df = df[df["sample_id"] == self.model.active_sample]
     
         self.viewer.add_points(
-            df[df[self.model.active_marker] > self.model.current_gate][["X_centroid", "Y_centroid"]],
-            name=f"{self.model.current_gate} and its positive cells",
-            face_color="red",
-            edge_color="black",
-            size=15,
+            df[df[self.model.active_marker] > self.model.current_gate][["Y_centroid", "X_centroid"]],
+            name=f"Gate: {round(self.model.current_gate)}  {self.model.active_sample} {self.model.active_marker}",
+            face_color="#ff00ff",
+            edge_color="yellow",
+            size=8,
+            opacity=0.5,
         )
-    
-    def plot_points_button(self):
-        """Plot points button."""
-        self.plot_points_button = QPushButton("Plot Points")
-        self.plot_points_button.clicked.connect(self.plot_points)
-        self.layout().addWidget(self.plot_points_button, 1, 2)  # not sure where to put this button
-
 
     ####################################
     ### GATES DATAFRAME INPUT OUTPUT ###
@@ -260,6 +253,10 @@ class ScatterInputWidget(QWidget):
         self.slider.on_changed(self.slider_changed)
         self.slider_canvas.draw()
 
+    ##########################
+    ###### LOADING DATA ######
+    ##########################
+
     def update_plot(self):
         self.scatter_canvas.ax.clear()
         self.scatter_canvas.plot_scatter_plot(self.model)
@@ -273,23 +270,7 @@ class ScatterInputWidget(QWidget):
         self.update_plot()
         self.update_slider()
 
-    @property
-    def model(self) -> DataModel:
-        """The dataclass model that stores information required for cell_gating."""
-        return self._model
-
-    @model.setter
-    def model(self, model: DataModel) -> None:
-        self._model = model
-
-    @property
-    def viewer(self) -> Viewer:
-        """The napari Viewer."""
-        return self._viewer
-
-    @viewer.setter
-    def viewer(self, viewer: Viewer) -> None:
-        self._viewer = viewer
+    
 
     def _read_data(self, sample: str | None) -> None:
         logger.info(f"Reading data for sample {sample}.")
@@ -301,28 +282,31 @@ class ScatterInputWidget(QWidget):
 
             self._image = imread(image_path)
             self._mask = imread(mask_path)
-            #TODO add DNA channel to the layers added
 
     def _load_layers(self, marker_index):
 
         # FOR NOW
         # if self.model.active_sample != self._current_sample:
         #     self._current_sample = copy(self.model.active_sample)
-        logger.debug(f"_load_layers(self, {marker_index})")
 
+
+        #TODO let user decide which is their DNA channel
+        self.viewer.add_image(
+            self._image[0],
+            name="DNA_" + self.model.active_sample,
+            blending="additive",
+            visible=False
+        )
         self.viewer.add_labels(
             self._mask, 
             name="mask_" + self.model.active_sample,
             visible=False, opacity=0.4
         )
-        logger.debug(f"Added mask for {self.model.active_sample}.")
-
         self.viewer.add_image(
             self._image[marker_index],
             name=self.model.active_marker + "_" + self.model.active_sample,
             blending="additive",
         )
-        logger.debug(f"Added image: marker_index {marker_index} of the image with shape {self._image.shape}. ")
 
     def _on_sample_changed(self):
         self.model.active_sample = self.sample_selection_dropdown.currentText()
@@ -377,6 +361,24 @@ class ScatterInputWidget(QWidget):
             "CSV Files (*.csv)",
             options=options,
         )
+    
+    @property
+    def model(self) -> DataModel:
+        """The dataclass model that stores information required for cell_gating."""
+        return self._model
+
+    @model.setter
+    def model(self, model: DataModel) -> None:
+        self._model = model
+
+    @property
+    def viewer(self) -> Viewer:
+        """The napari Viewer."""
+        return self._viewer
+
+    @viewer.setter
+    def viewer(self, viewer: Viewer) -> None:
+        self._viewer = viewer
 
 class PlotCanvas():
     """The canvas class for the gating scatter plot."""
