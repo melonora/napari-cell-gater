@@ -196,7 +196,7 @@ class SampleWidget(QWidget):
             self.upper_bound_marker_col.addItems(region_props.columns)
             #set default to the last column before X_centroid
             if "X_centroid" in region_props.columns:
-                default_index = self.upper_bound_marker_col.findText("X_centroid")
+                default_index = self.model.regionprops_df.columns.tolist().index("X_centroid")
                 if default_index != -1:
                     self.upper_bound_marker_col.setCurrentIndex(default_index-1)
             else:
