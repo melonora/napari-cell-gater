@@ -99,11 +99,6 @@ class SampleWidget(QWidget):
 
         self.model.events.regionprops_df.connect(self._set_dropdown_marker_lowerbound)
         self.model.events.regionprops_df.connect(self._set_dropdown_marker_upperbound)
-        
-        #set default bounds
-        
-        
-
 
     @property
     def viewer(self) -> Viewer:
@@ -192,13 +187,13 @@ class SampleWidget(QWidget):
         region_props = self.model.regionprops_df
         if region_props is not None and len(region_props) > 0:
             self.upper_bound_marker_col.addItems(region_props.columns)
-            
-        #TODO set default to column before "X_centroid"
-        # This does not work
-        # if "X_centroid" in list(self.model.regionprops_df.columns):
-        #     self.upper_bound_marker_col.setCurrentIndex(
-        #         self.model.regionprops_df.columns.index("X_centroid")-1 )
-        
+            #set default to the last column before X_centroid
+            if "X_centroid" in region_props.columns:
+                default_index = self.upper_bound_marker_col.findText("X_centroid")
+                if default_index != -1:
+                    self.upper_bound_marker_col.setCurrentIndex(default_index-1)
+            else:
+                self.upper_bound_marker_col.setCurrentIndex(len(region_props.columns)-1)
 
     def _update_model_lowerbound(self):
         """Update the lowerbound marker in the data model upon change of text in the lowerbound marker column widget."""
