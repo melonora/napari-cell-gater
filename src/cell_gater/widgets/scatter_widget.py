@@ -233,7 +233,7 @@ class ScatterInputWidget(QWidget):
     def get_min_max_median_step(self) -> tuple:
         df = self.model.regionprops_df
         df = df[df["sample_id"] == self.model.active_sample]
-        min = df[self.model.active_marker].min()
+        min = df[self.model.active_marker].min() + 1
         max = df[self.model.active_marker].max()
         init = df[self.model.active_marker].median()
         step = min / 100
@@ -338,7 +338,7 @@ class ScatterInputWidget(QWidget):
             if len(self.model.samples) > 0:
                 self.sample_selection_dropdown.addItems([None])
                 self.sample_selection_dropdown.addItems(self.model.samples)
-    
+
     def _on_y_axis_changed(self):
         """Set active y-axis and update the scatter plot."""
         self.model.active_y_axis = self.choose_y_axis_dropdown.currentText()
@@ -406,10 +406,10 @@ class PlotCanvas():
     def plot_scatter_plot(self, model: DataModel) -> None:
         assert self.model.active_marker is not None
         assert self.model.active_sample is not None
-    
+
         df = self.model.regionprops_df
         df = df[df["sample_id"] == self.model.active_sample]
-        
+
         logger.debug(f"Plotting scatter plot for {self.model.active_sample} and {self.model.active_marker}.")
 
         self.ax.scatter(
@@ -425,13 +425,13 @@ class PlotCanvas():
         self.ax.set_xlim(df[self.model.active_marker].min(), df[self.model.active_marker].max())
         self.ax.set_ylabel(self.model.active_y_axis)
         self.ax.set_xlabel(f"{self.model.active_marker} intensity")
-    
+
         logger.debug(f"The current gate is {self.model.current_gate}.")
         if self.model.current_gate > 0.0:
             self.ax.axvline(x=self.model.current_gate, color="red", linewidth=1.0, linestyle="--")
         else:
             self.ax.axvline(x=1, color="red", linewidth=1.0, linestyle="--")
-    
+
     def update_vertical_line(self, x_position):
         """Update the position of the vertical line."""
         self.ax.lines[0].set_xdata(x_position)
