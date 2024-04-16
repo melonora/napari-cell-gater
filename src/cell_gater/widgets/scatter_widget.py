@@ -78,7 +78,7 @@ class ScatterInputWidget(QWidget):
         # Dropdown of samples once directory is loaded
         selection_label = QLabel("Select sample:")
         self.sample_selection_dropdown = QComboBox()
-        self.sample_selection_dropdown.addItems(self.model.samples)
+        self.sample_selection_dropdown.addItems(sorted(self.model.samples, key=self.natural_sort_key) )
         self.sample_selection_dropdown.currentTextChanged.connect(self._on_sample_changed)
 
         marker_label = QLabel("Marker label:")
@@ -109,13 +109,13 @@ class ScatterInputWidget(QWidget):
         self.model.active_y_axis = self.choose_y_axis_dropdown.currentText()
 
         self._read_data(self.model.active_sample)
-        self._load_layers(self.model.markers[self.model.active_marker])
+        self._load_layers(self.model.markers_image_indices[self.model.active_marker])
 
         # scatter plot
         self.scatter_canvas = PlotCanvas(self.model)
         self.layout().addWidget(self.scatter_canvas.fig, 3, 0, 1, 4)
 
-        # slider    
+        # slider
         self.slider_figure = Figure(figsize=(5, 1))
         self.slider_canvas = FigureCanvas(self.slider_figure)
         self.slider_ax = self.slider_figure.add_subplot(111)
@@ -129,11 +129,11 @@ class ScatterInputWidget(QWidget):
 
         # Initialize gates dataframe 
         sample_marker_combinations = list(product(
-            self.model.regionprops_df['sample_id'].unique(), 
+            self.model.regionprops_df["sample_id"].unique(),
             self.model.markers
         ))
-        self.model.gates = pd.DataFrame(sample_marker_combinations, columns=['sample_id', 'marker_id'])
-        self.model.gates['gate_value'] = float(0)
+        self.model.gates = pd.DataFrame(sample_marker_combinations, columns=["sample_id", "marker_id"])
+        self.model.gates["gate_value"] = float(0)
 
         # gate buttons
         save_gate_button = QPushButton("Save Gate")
@@ -186,14 +186,14 @@ class ScatterInputWidget(QWidget):
         file_path, _ = self._file_dialog()
         if file_path:
             self.model.gates = pd.read_csv(file_path)
-        self.model.gates['sample_id'] = self.model.gates['sample_id'].astype(str)
+        self.model.gates["sample_id"] = self.model.gates["sample_id"].astype(str)
         # check if dataframe has samples and markers
-        assert 'sample_id' in self.model.gates.columns
-        assert 'marker_id' in self.model.gates.columns
-        assert 'gate_value' in self.model.gates.columns
+        assert "sample_id" in self.model.gates.columns
+        assert "marker_id" in self.model.gates.columns
+        assert "gate_value" in self.model.gates.columns
         # check if dataframe has the same samples and markers as the regionprops_df
-        assert set(self.model.gates['sample_id'].unique()) == set(self.model.regionprops_df['sample_id'].unique())
-        assert set(self.model.gates['marker_id'].unique()) == set(self.model.markers)
+        assert set(self.model.gates["sample_id"].unique()) == set(self.model.regionprops_df["sample_id"].unique())
+        assert set(self.model.gates["marker_id"].unique()) == set(self.model.markers)
     
     def save_gates_dataframe(self):
         options = QFileDialog.Options()
@@ -263,8 +263,10 @@ class ScatterInputWidget(QWidget):
     def _load_images_and_scatter_plot(self):
         self._clear_layers(clear_all=True)
         self._read_data(self.model.active_sample)
-        self._load_layers(self.model.markers[self.model.active_marker])
-        logger.debug(f"loading index {self.model.markers[self.model.active_marker]}")
+        # active marker is a string
+        # markers is dict with marker_name_string:index (based on dropdowns)
+        self._load_layers(self.model.markers_image_indices[self.model.active_marker])
+        logger.debug(f"loading index {self.model.markers_image_indices[self.model.active_marker]}")
         self.update_plot()
         self.update_slider()
 
@@ -355,7 +357,12 @@ class ScatterInputWidget(QWidget):
             "CSV Files (*.csv)",
             options=options,
         )
-    
+
+    def natural_sort_key(self, s):
+        """Key function for natural sorting."""
+        import re
+        return [int(text) if text.isdigit() else text.lower() for text in re.split(r"(\d+)", s)]
+
     @property
     def model(self) -> DataModel:
         """The dataclass model that stores information required for cell_gating."""

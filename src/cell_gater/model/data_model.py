@@ -22,6 +22,7 @@ class DataModel:
     _lower_bound_marker: str | None = field(default=None, init=False)
     _upper_bound_marker: str | None = field(default=None, init=False)
     _markers: Sequence[str] = field(default_factory=list, init=False)
+    _markers_image_indices: Sequence[str] = field(default_factory=list, init=False)
     _marker_filter: str = field(default="dna,dapi", init=True)
     _validated: bool = field(default=False, init=True)
 
@@ -131,6 +132,15 @@ class DataModel:
     def markers(self):
         """The markers included for gating."""
         return self._markers
+
+    @property
+    def markers_image_indices(self):
+        """The markers included for gating."""
+        return self._markers_image_indices
+
+    @markers_image_indices.setter
+    def markers_image_indices(self, markers_image_indices: Sequence[str]) -> None:
+        self._markers_image_indices = markers_image_indices
 
     @markers.setter
     def markers(self, markers: Sequence[str]) -> None:

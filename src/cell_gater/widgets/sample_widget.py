@@ -21,6 +21,9 @@ from cell_gater.utils.csv_df import stack_csv_files
 from cell_gater.utils.misc import napari_notification
 from cell_gater.widgets.scatter_widget import ScatterInputWidget
 
+#TODO still having problem with number of channels
+# if user picks a marker that is on the fifth position of the df.columns, then there is a shift
+
 class SampleWidget(QWidget):
     """Sample widget for loading required data."""
 
@@ -224,6 +227,7 @@ class SampleWidget(QWidget):
         ), "Number of images and segmentation masks do not match."
 
         #TODO what happens when upperbound is before lowerbound?
+        #Should break and give error message
 
         # First check whether there is a difference between the file names without extension and then assign as samples
         image_paths_set = {i.stem if ".ome" not in i.stem else i.stem.rstrip(".ome") for i in self.model.image_paths}
@@ -247,6 +251,9 @@ class SampleWidget(QWidget):
         marker_columns = column_ls[lowerbound_index : upperbound_index + 1]
         self.model.markers = {marker: i for i, marker in enumerate(marker_columns)}
         n_markers = len(self.model.markers)
+        # ASSUMPTION: markers start at index 1 and finish before X_centroid
+        markers = column_ls[1:column_ls.index("X_centroid")-1]
+        self.model.markers_image_indices = {marker: i for i, marker in enumerate(markers)}
 
         for filter in self.model.marker_filter.split(","):
             # Do this because changing length would cause errors when deleting in loop.
