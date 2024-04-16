@@ -46,7 +46,6 @@ from loguru import logger
 logger.remove()
 logger.add(sys.stdout, format="<green>{time:HH:mm:ss.SS}</green> | <level>{level}</level> | {message}")
 
-
 #Good to have features
 #TODO Dynamic loading of markers, without reloading masks or DNA channel, so deprecate Load Sample and Marker button
 
