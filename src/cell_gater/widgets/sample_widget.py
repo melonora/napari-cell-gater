@@ -92,8 +92,8 @@ class SampleWidget(QWidget):
             placeholderText="Prefixes separated by commas.",
         )
         self.filter_field.editingFinished.connect(self._update_filter)
-        self.layout().addWidget(filter_label, 3, 0, 1 ,2)
-        self.layout().addWidget(self.filter_field, 3, 3)
+        self.layout().addWidget(filter_label,  3, 0, 1 ,1)
+        self.layout().addWidget(self.filter_field, 3, 1, 1, 1)
 
         # Button to start validating all the input
         self.validate_button = QPushButton("Validate input")
@@ -102,6 +102,10 @@ class SampleWidget(QWidget):
 
         self.model.events.regionprops_df.connect(self._set_dropdown_marker_lowerbound)
         self.model.events.regionprops_df.connect(self._set_dropdown_marker_upperbound)
+
+    def update_ref_channel(self):
+        """Update the reference channel in the data model upon change of text in the reference channel column widget."""
+        self.model.ref_channel = self.ref_channel.currentText()
 
     @property
     def viewer(self) -> Viewer:

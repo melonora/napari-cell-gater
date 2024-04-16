@@ -95,18 +95,27 @@ class ScatterInputWidget(QWidget):
         self.choose_y_axis_dropdown.setCurrentText("Area")
         self.choose_y_axis_dropdown.currentTextChanged.connect(self._on_y_axis_changed)
 
+        # Reference channel
+        DNA_to_show = QLabel("Select reference channel")
+        self.ref_channel_dropdown = QComboBox()
+        self.ref_channel_dropdown.addItems(self.model.markers_image_indices.keys())
+        self.ref_channel_dropdown.currentTextChanged.connect(self.update_ref_channel)
+
         self.layout().addWidget(selection_label, 0, 0)
         self.layout().addWidget(self.sample_selection_dropdown, 0, 1)
         self.layout().addWidget(marker_label, 0, 2)
         self.layout().addWidget(self.marker_selection_dropdown, 0, 3)
         self.layout().addWidget(apply_button, 1, 0, 1, 4)
-        self.layout().addWidget(choose_y_axis_label, 2, 0, 1, 2)
-        self.layout().addWidget(self.choose_y_axis_dropdown, 2, 2, 1, 2)
+        self.layout().addWidget(choose_y_axis_label, 2, 0, 1, 1)
+        self.layout().addWidget(self.choose_y_axis_dropdown, 2, 1, 1, 1)
+        self.layout().addWidget(DNA_to_show, 2, 2, 1, 1)
+        self.layout().addWidget(self.ref_channel_dropdown, 2, 3, 1, 1)
 
         # we have to do this because initially the dropdowns did not change texts yet so these variables are still None.
         self.model.active_sample = self.sample_selection_dropdown.currentText()
         self.model.active_marker = self.marker_selection_dropdown.currentText()
         self.model.active_y_axis = self.choose_y_axis_dropdown.currentText()
+        self.model.active_ref_marker = self.ref_channel_dropdown.currentText()
 
         self._read_data(self.model.active_sample)
         self._load_layers(self.model.markers_image_indices[self.model.active_marker])
@@ -150,6 +159,10 @@ class ScatterInputWidget(QWidget):
 
 
     ########################### FUNCTIONS ###########################
+
+    def update_ref_channel(self):
+        self.model.active_ref_marker = self.ref_channel_dropdown.currentText()
+        self._load_images_and_scatter_plot()
     
     ###################
     ### PLOT POINTS ###
@@ -286,10 +299,9 @@ class ScatterInputWidget(QWidget):
         # if self.model.active_sample != self._current_sample:
         #     self._current_sample = copy(self.model.active_sample)
 
-        #TODO let user decide which is their DNA channel
         self.viewer.add_image(
-            self._image[0],
-            name="DNA_" + self.model.active_sample,
+            self._image[self.model.markers_image_indices[self.model.active_ref_marker]],
+            name="Reference" + self.model.active_sample,
             blending="additive",
             visible=False
         )

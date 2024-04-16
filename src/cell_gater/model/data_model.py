@@ -29,15 +29,25 @@ class DataModel:
     _active_marker: str | None = field(default=None, init=False)
     _active_sample: str | None = field(default=None, init=False)
     _active_y_axis: str | None = field(default=None, init=False)
+    _active_ref_marker: str | None = field(default=None, init=False)
 
     _gates: pd.DataFrame = field(default_factory=pd.DataFrame, init=False)
     _current_gate: float = field(default_factory=float, init=False)
 
     @property
+    def active_ref_marker(self):
+        """The reference marker for the gates."""
+        return self._active_ref_marker
+
+    @active_ref_marker.setter
+    def active_ref_marker(self, marker: str) -> None:
+        self._active_ref_marker = marker
+
+    @property
     def gates(self):
         """The gates dataframe."""
         return self._gates
-    
+
     @gates.setter
     def gates(self, gates: pd.DataFrame) -> None:
         self._gates = gates
@@ -46,7 +56,7 @@ class DataModel:
     def current_gate(self) -> float:
         """The current gate value."""
         return self._current_gate
-    
+
     @current_gate.setter
     def current_gate(self, value: float) -> None:
         self._current_gate = value
