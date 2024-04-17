@@ -301,12 +301,11 @@ class ScatterInputWidget(QWidget):
 
         self.viewer.add_image(
             self._image[self.model.markers_image_indices[self.model.active_ref_marker]],
-            name="Reference" + self.model.active_sample,
-            blending="additive",
-            visible=False
+            name="Ref:"+ self.model.active_ref_marker + "_" + self.model.active_sample,
+            blending="additive", visible=False
         )
         self.viewer.add_labels(
-            self._mask, 
+            self._mask,
             name="mask_" + self.model.active_sample,
             visible=False, opacity=0.4
         )
