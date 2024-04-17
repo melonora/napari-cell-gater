@@ -46,7 +46,6 @@ from loguru import logger
 logger.remove()
 logger.add(sys.stdout, format="<green>{time:HH:mm:ss.SS}</green> | <level>{level}</level> | {message}")
 
-
 #Good to have features
 #TODO Dynamic loading of markers, without reloading masks or DNA channel, so deprecate Load Sample and Marker button
 
@@ -79,7 +78,7 @@ class ScatterInputWidget(QWidget):
         # Dropdown of samples once directory is loaded
         selection_label = QLabel("Select sample:")
         self.sample_selection_dropdown = QComboBox()
-        self.sample_selection_dropdown.addItems(self.model.samples)
+        self.sample_selection_dropdown.addItems(sorted(self.model.samples, key=self.natural_sort_key) )
         self.sample_selection_dropdown.currentTextChanged.connect(self._on_sample_changed)
 
         marker_label = QLabel("Marker label:")
@@ -96,27 +95,36 @@ class ScatterInputWidget(QWidget):
         self.choose_y_axis_dropdown.setCurrentText("Area")
         self.choose_y_axis_dropdown.currentTextChanged.connect(self._on_y_axis_changed)
 
+        # Reference channel
+        DNA_to_show = QLabel("Select reference channel")
+        self.ref_channel_dropdown = QComboBox()
+        self.ref_channel_dropdown.addItems(self.model.markers_image_indices.keys())
+        self.ref_channel_dropdown.currentTextChanged.connect(self.update_ref_channel)
+
         self.layout().addWidget(selection_label, 0, 0)
         self.layout().addWidget(self.sample_selection_dropdown, 0, 1)
         self.layout().addWidget(marker_label, 0, 2)
         self.layout().addWidget(self.marker_selection_dropdown, 0, 3)
         self.layout().addWidget(apply_button, 1, 0, 1, 4)
-        self.layout().addWidget(choose_y_axis_label, 2, 0, 1, 2)
-        self.layout().addWidget(self.choose_y_axis_dropdown, 2, 2, 1, 2)
+        self.layout().addWidget(choose_y_axis_label, 2, 0, 1, 1)
+        self.layout().addWidget(self.choose_y_axis_dropdown, 2, 1, 1, 1)
+        self.layout().addWidget(DNA_to_show, 2, 2, 1, 1)
+        self.layout().addWidget(self.ref_channel_dropdown, 2, 3, 1, 1)
 
         # we have to do this because initially the dropdowns did not change texts yet so these variables are still None.
         self.model.active_sample = self.sample_selection_dropdown.currentText()
         self.model.active_marker = self.marker_selection_dropdown.currentText()
         self.model.active_y_axis = self.choose_y_axis_dropdown.currentText()
+        self.model.active_ref_marker = self.ref_channel_dropdown.currentText()
 
         self._read_data(self.model.active_sample)
-        self._load_layers(self.model.markers[self.model.active_marker])
+        self._load_layers(self.model.markers_image_indices[self.model.active_marker])
 
         # scatter plot
         self.scatter_canvas = PlotCanvas(self.model)
         self.layout().addWidget(self.scatter_canvas.fig, 3, 0, 1, 4)
 
-        # slider    
+        # slider
         self.slider_figure = Figure(figsize=(5, 1))
         self.slider_canvas = FigureCanvas(self.slider_figure)
         self.slider_ax = self.slider_figure.add_subplot(111)
@@ -130,11 +138,11 @@ class ScatterInputWidget(QWidget):
 
         # Initialize gates dataframe 
         sample_marker_combinations = list(product(
-            self.model.regionprops_df['sample_id'].unique(), 
+            self.model.regionprops_df["sample_id"].unique(),
             self.model.markers
         ))
-        self.model.gates = pd.DataFrame(sample_marker_combinations, columns=['sample_id', 'marker_id'])
-        self.model.gates['gate_value'] = float(0)
+        self.model.gates = pd.DataFrame(sample_marker_combinations, columns=["sample_id", "marker_id"])
+        self.model.gates["gate_value"] = float(0)
 
         # gate buttons
         save_gate_button = QPushButton("Save Gate")
@@ -151,6 +159,10 @@ class ScatterInputWidget(QWidget):
 
 
     ########################### FUNCTIONS ###########################
+
+    def update_ref_channel(self):
+        self.model.active_ref_marker = self.ref_channel_dropdown.currentText()
+        self._load_images_and_scatter_plot()
     
     ###################
     ### PLOT POINTS ###
@@ -187,14 +199,14 @@ class ScatterInputWidget(QWidget):
         file_path, _ = self._file_dialog()
         if file_path:
             self.model.gates = pd.read_csv(file_path)
-        self.model.gates['sample_id'] = self.model.gates['sample_id'].astype(str)
+        self.model.gates["sample_id"] = self.model.gates["sample_id"].astype(str)
         # check if dataframe has samples and markers
-        assert 'sample_id' in self.model.gates.columns
-        assert 'marker_id' in self.model.gates.columns
-        assert 'gate_value' in self.model.gates.columns
+        assert "sample_id" in self.model.gates.columns
+        assert "marker_id" in self.model.gates.columns
+        assert "gate_value" in self.model.gates.columns
         # check if dataframe has the same samples and markers as the regionprops_df
-        assert set(self.model.gates['sample_id'].unique()) == set(self.model.regionprops_df['sample_id'].unique())
-        assert set(self.model.gates['marker_id'].unique()) == set(self.model.markers)
+        assert set(self.model.gates["sample_id"].unique()) == set(self.model.regionprops_df["sample_id"].unique())
+        assert set(self.model.gates["marker_id"].unique()) == set(self.model.markers)
     
     def save_gates_dataframe(self):
         options = QFileDialog.Options()
@@ -234,7 +246,7 @@ class ScatterInputWidget(QWidget):
     def get_min_max_median_step(self) -> tuple:
         df = self.model.regionprops_df
         df = df[df["sample_id"] == self.model.active_sample]
-        min = df[self.model.active_marker].min()
+        min = df[self.model.active_marker].min() + 1
         max = df[self.model.active_marker].max()
         init = df[self.model.active_marker].median()
         step = min / 100
@@ -264,8 +276,10 @@ class ScatterInputWidget(QWidget):
     def _load_images_and_scatter_plot(self):
         self._clear_layers(clear_all=True)
         self._read_data(self.model.active_sample)
-        self._load_layers(self.model.markers[self.model.active_marker])
-        logger.debug(f"loading index {self.model.markers[self.model.active_marker]}")
+        # active marker is a string
+        # markers is dict with marker_name_string:index (based on dropdowns)
+        self._load_layers(self.model.markers_image_indices[self.model.active_marker])
+        logger.debug(f"loading index {self.model.markers_image_indices[self.model.active_marker]}")
         self.update_plot()
         self.update_slider()
 
@@ -285,10 +299,9 @@ class ScatterInputWidget(QWidget):
         # if self.model.active_sample != self._current_sample:
         #     self._current_sample = copy(self.model.active_sample)
 
-        #TODO let user decide which is their DNA channel
         self.viewer.add_image(
-            self._image[0],
-            name="DNA_" + self.model.active_sample,
+            self._image[self.model.markers_image_indices[self.model.active_ref_marker]],
+            name="Reference" + self.model.active_sample,
             blending="additive",
             visible=False
         )
@@ -337,7 +350,7 @@ class ScatterInputWidget(QWidget):
             if len(self.model.samples) > 0:
                 self.sample_selection_dropdown.addItems([None])
                 self.sample_selection_dropdown.addItems(self.model.samples)
-    
+
     def _on_y_axis_changed(self):
         """Set active y-axis and update the scatter plot."""
         self.model.active_y_axis = self.choose_y_axis_dropdown.currentText()
@@ -356,7 +369,12 @@ class ScatterInputWidget(QWidget):
             "CSV Files (*.csv)",
             options=options,
         )
-    
+
+    def natural_sort_key(self, s):
+        """Key function for natural sorting."""
+        import re
+        return [int(text) if text.isdigit() else text.lower() for text in re.split(r"(\d+)", s)]
+
     @property
     def model(self) -> DataModel:
         """The dataclass model that stores information required for cell_gating."""
@@ -400,10 +418,10 @@ class PlotCanvas():
     def plot_scatter_plot(self, model: DataModel) -> None:
         assert self.model.active_marker is not None
         assert self.model.active_sample is not None
-    
+
         df = self.model.regionprops_df
         df = df[df["sample_id"] == self.model.active_sample]
-        
+
         logger.debug(f"Plotting scatter plot for {self.model.active_sample} and {self.model.active_marker}.")
 
         self.ax.scatter(
@@ -419,13 +437,13 @@ class PlotCanvas():
         self.ax.set_xlim(df[self.model.active_marker].min(), df[self.model.active_marker].max())
         self.ax.set_ylabel(self.model.active_y_axis)
         self.ax.set_xlabel(f"{self.model.active_marker} intensity")
-    
+
         logger.debug(f"The current gate is {self.model.current_gate}.")
         if self.model.current_gate > 0.0:
             self.ax.axvline(x=self.model.current_gate, color="red", linewidth=1.0, linestyle="--")
         else:
             self.ax.axvline(x=1, color="red", linewidth=1.0, linestyle="--")
-    
+
     def update_vertical_line(self, x_position):
         """Update the position of the vertical line."""
         self.ax.lines[0].set_xdata(x_position)

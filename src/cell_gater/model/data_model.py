@@ -22,21 +22,32 @@ class DataModel:
     _lower_bound_marker: str | None = field(default=None, init=False)
     _upper_bound_marker: str | None = field(default=None, init=False)
     _markers: Sequence[str] = field(default_factory=list, init=False)
+    _markers_image_indices: Sequence[str] = field(default_factory=list, init=False)
     _marker_filter: str = field(default="dna,dapi", init=True)
     _validated: bool = field(default=False, init=True)
 
     _active_marker: str | None = field(default=None, init=False)
     _active_sample: str | None = field(default=None, init=False)
     _active_y_axis: str | None = field(default=None, init=False)
+    _active_ref_marker: str | None = field(default=None, init=False)
 
     _gates: pd.DataFrame = field(default_factory=pd.DataFrame, init=False)
     _current_gate: float = field(default_factory=float, init=False)
 
     @property
+    def active_ref_marker(self):
+        """The reference marker for the gates."""
+        return self._active_ref_marker
+
+    @active_ref_marker.setter
+    def active_ref_marker(self, marker: str) -> None:
+        self._active_ref_marker = marker
+
+    @property
     def gates(self):
         """The gates dataframe."""
         return self._gates
-    
+
     @gates.setter
     def gates(self, gates: pd.DataFrame) -> None:
         self._gates = gates
@@ -45,7 +56,7 @@ class DataModel:
     def current_gate(self) -> float:
         """The current gate value."""
         return self._current_gate
-    
+
     @current_gate.setter
     def current_gate(self, value: float) -> None:
         self._current_gate = value
@@ -131,6 +142,15 @@ class DataModel:
     def markers(self):
         """The markers included for gating."""
         return self._markers
+
+    @property
+    def markers_image_indices(self):
+        """The markers included for gating."""
+        return self._markers_image_indices
+
+    @markers_image_indices.setter
+    def markers_image_indices(self, markers_image_indices: Sequence[str]) -> None:
+        self._markers_image_indices = markers_image_indices
 
     @markers.setter
     def markers(self, markers: Sequence[str]) -> None:

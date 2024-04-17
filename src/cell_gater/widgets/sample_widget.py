@@ -21,6 +21,9 @@ from cell_gater.utils.csv_df import stack_csv_files
 from cell_gater.utils.misc import napari_notification
 from cell_gater.widgets.scatter_widget import ScatterInputWidget
 
+#TODO still having problem with number of channels
+# if user picks a marker that is on the fifth position of the df.columns, then there is a shift
+
 class SampleWidget(QWidget):
     """Sample widget for loading required data."""
 
@@ -89,8 +92,8 @@ class SampleWidget(QWidget):
             placeholderText="Prefixes separated by commas.",
         )
         self.filter_field.editingFinished.connect(self._update_filter)
-        self.layout().addWidget(filter_label, 3, 0, 1 ,2)
-        self.layout().addWidget(self.filter_field, 3, 3)
+        self.layout().addWidget(filter_label,  3, 0, 1 ,1)
+        self.layout().addWidget(self.filter_field, 3, 1, 1, 1)
 
         # Button to start validating all the input
         self.validate_button = QPushButton("Validate input")
@@ -99,11 +102,10 @@ class SampleWidget(QWidget):
 
         self.model.events.regionprops_df.connect(self._set_dropdown_marker_lowerbound)
         self.model.events.regionprops_df.connect(self._set_dropdown_marker_upperbound)
-        
-        #set default bounds
-        
-        
 
+    def update_ref_channel(self):
+        """Update the reference channel in the data model upon change of text in the reference channel column widget."""
+        self.model.ref_channel = self.ref_channel.currentText()
 
     @property
     def viewer(self) -> Viewer:
@@ -192,13 +194,13 @@ class SampleWidget(QWidget):
         region_props = self.model.regionprops_df
         if region_props is not None and len(region_props) > 0:
             self.upper_bound_marker_col.addItems(region_props.columns)
-            
-        #TODO set default to column before "X_centroid"
-        # This does not work
-        # if "X_centroid" in list(self.model.regionprops_df.columns):
-        #     self.upper_bound_marker_col.setCurrentIndex(
-        #         self.model.regionprops_df.columns.index("X_centroid")-1 )
-        
+            #set default to the last column before X_centroid
+            if "X_centroid" in region_props.columns:
+                default_index = self.model.regionprops_df.columns.tolist().index("X_centroid")
+                if default_index != -1:
+                    self.upper_bound_marker_col.setCurrentIndex(default_index-1)
+            else:
+                self.upper_bound_marker_col.setCurrentIndex(len(region_props.columns)-1)
 
     def _update_model_lowerbound(self):
         """Update the lowerbound marker in the data model upon change of text in the lowerbound marker column widget."""
@@ -229,6 +231,7 @@ class SampleWidget(QWidget):
         ), "Number of images and segmentation masks do not match."
 
         #TODO what happens when upperbound is before lowerbound?
+        #Should break and give error message
 
         # First check whether there is a difference between the file names without extension and then assign as samples
         image_paths_set = {i.stem if ".ome" not in i.stem else i.stem.rstrip(".ome") for i in self.model.image_paths}
@@ -252,6 +255,9 @@ class SampleWidget(QWidget):
         marker_columns = column_ls[lowerbound_index : upperbound_index + 1]
         self.model.markers = {marker: i for i, marker in enumerate(marker_columns)}
         n_markers = len(self.model.markers)
+        # ASSUMPTION: markers start at index 1 and finish before X_centroid
+        markers = column_ls[1:column_ls.index("X_centroid")-1]
+        self.model.markers_image_indices = {marker: i for i, marker in enumerate(markers)}
 
         for filter in self.model.marker_filter.split(","):
             # Do this because changing length would cause errors when deleting in loop.
