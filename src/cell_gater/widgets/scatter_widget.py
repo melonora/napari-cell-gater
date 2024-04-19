@@ -163,7 +163,7 @@ class ScatterInputWidget(QWidget):
     def update_ref_channel(self):
         self.model.active_ref_marker = self.ref_channel_dropdown.currentText()
         self._load_images_and_scatter_plot()
-    
+
     ###################
     ### PLOT POINTS ###
     ###################
@@ -205,15 +205,15 @@ class ScatterInputWidget(QWidget):
         assert "marker_id" in self.model.gates.columns
         assert "gate_value" in self.model.gates.columns
         # check if dataframe has the same samples and markers as the regionprops_df
-        assert set(self.model.gates["sample_id"].unique()) == set(self.model.regionprops_df["sample_id"].unique())
+        assert set(self.model.gates["sample_id"].unique()) == set(self.model.regionprops_df["sample_id"].unique()), "Samples in gates dataframe do not match samples in regionprops dataframe."
         assert set(self.model.gates["marker_id"].unique()) == set(self.model.markers)
-    
+
     def save_gates_dataframe(self):
         options = QFileDialog.Options()
         fileName, _ = QFileDialog.getSaveFileName(self, "Save Gates Dataframe", "", "CSV Files (*.csv);;All Files (*)", options=options)
         if fileName:
             self.model.gates.to_csv(fileName, index=False)
-            print("File saved to:", fileName)
+            logger.info(f"File saved to: {fileName}")
 
     def save_gate(self):
         if self.model.current_gate == 0:
@@ -223,19 +223,23 @@ class ScatterInputWidget(QWidget):
         if self.access_gate() != self.model.current_gate:
             napari_notification(f"Old gate {self.access_gate().round(2)} overwritten to {self.model.current_gate.round(2)}")
         self.model.gates.loc[
-            (self.model.gates['sample_id'] == self.model.active_sample) & 
-            (self.model.gates['marker_id'] == self.model.active_marker), 
-            'gate_value'] = self.model.current_gate
+            (self.model.gates["sample_id"] == self.model.active_sample) & 
+            (self.model.gates["marker_id"] == self.model.active_marker), 
+            "gate_value"] = self.model.current_gate
         assert self.access_gate() == self.model.current_gate
         logger.debug(f"Gate saved: {self.model.current_gate}")
 
     def access_gate(self):
         assert self.model.active_sample is not None
         assert self.model.active_marker is not None
-        gate_value = self.model.gates.loc[
-            (self.model.gates['sample_id'] == self.model.active_sample) & 
-            (self.model.gates['marker_id'] == self.model.active_marker), 
-            'gate_value'].values[0]
+        try:
+            gate_value = self.model.gates.loc[
+                (self.model.gates["sample_id"] == self.model.active_sample) &
+                (self.model.gates["marker_id"] == self.model.active_marker),
+                "gate_value"].values[0]
+        except IndexError:
+            logger.debug(f"Gate not found for {self.model.active_sample} and {self.model.active_marker}.")
+            logger.debug(self.model.gates)
         assert isinstance(gate_value, float)
         return gate_value
 

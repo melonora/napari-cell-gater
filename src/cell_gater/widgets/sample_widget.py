@@ -256,7 +256,7 @@ class SampleWidget(QWidget):
         self.model.markers = {marker: i for i, marker in enumerate(marker_columns)}
         n_markers = len(self.model.markers)
         # ASSUMPTION: markers start at index 1 and finish before X_centroid
-        markers = column_ls[1:column_ls.index("X_centroid")-1]
+        markers = column_ls[1:column_ls.index("X_centroid")]
         self.model.markers_image_indices = {marker: i for i, marker in enumerate(markers)}
 
         for filter in self.model.marker_filter.split(","):
