@@ -21,8 +21,9 @@ from cell_gater.utils.csv_df import stack_csv_files
 from cell_gater.utils.misc import napari_notification
 from cell_gater.widgets.scatter_widget import ScatterInputWidget
 
-#TODO still having problem with number of channels
+# TODO still having problem with number of channels
 # if user picks a marker that is on the fifth position of the df.columns, then there is a shift
+
 
 class SampleWidget(QWidget):
     """Sample widget for loading required data."""
@@ -92,7 +93,7 @@ class SampleWidget(QWidget):
             placeholderText="Prefixes separated by commas.",
         )
         self.filter_field.editingFinished.connect(self._update_filter)
-        self.layout().addWidget(filter_label,  3, 0, 1 ,1)
+        self.layout().addWidget(filter_label, 3, 0, 1, 1)
         self.layout().addWidget(self.filter_field, 3, 1, 1, 1)
 
         # Button to start validating all the input
@@ -182,7 +183,7 @@ class SampleWidget(QWidget):
         region_props = self.model.regionprops_df
         if region_props is not None and len(region_props) > 0:
             self.lower_bound_marker_col.addItems(region_props.columns)
-        self.lower_bound_marker_col.setCurrentIndex(1) # Skip the cell id column
+        self.lower_bound_marker_col.setCurrentIndex(1)  # Skip the cell id column
 
     def _set_dropdown_marker_upperbound(self):
         """Add items to dropdown menu for upperbound marker.
@@ -194,13 +195,13 @@ class SampleWidget(QWidget):
         region_props = self.model.regionprops_df
         if region_props is not None and len(region_props) > 0:
             self.upper_bound_marker_col.addItems(region_props.columns)
-            #set default to the last column before X_centroid
+            # set default to the last column before X_centroid
             if "X_centroid" in region_props.columns:
                 default_index = self.model.regionprops_df.columns.tolist().index("X_centroid")
                 if default_index != -1:
-                    self.upper_bound_marker_col.setCurrentIndex(default_index-1)
+                    self.upper_bound_marker_col.setCurrentIndex(default_index - 1)
             else:
-                self.upper_bound_marker_col.setCurrentIndex(len(region_props.columns)-1)
+                self.upper_bound_marker_col.setCurrentIndex(len(region_props.columns) - 1)
 
     def _update_model_lowerbound(self):
         """Update the lowerbound marker in the data model upon change of text in the lowerbound marker column widget."""
@@ -230,8 +231,8 @@ class SampleWidget(QWidget):
             self.model.mask_paths
         ), "Number of images and segmentation masks do not match."
 
-        #TODO what happens when upperbound is before lowerbound?
-        #Should break and give error message
+        # TODO what happens when upperbound is before lowerbound?
+        # Should break and give error message
 
         # First check whether there is a difference between the file names without extension and then assign as samples
         image_paths_set = {i.stem if ".ome" not in i.stem else i.stem.rstrip(".ome") for i in self.model.image_paths}
@@ -256,7 +257,7 @@ class SampleWidget(QWidget):
         self.model.markers = {marker: i for i, marker in enumerate(marker_columns)}
         n_markers = len(self.model.markers)
         # ASSUMPTION: markers start at index 1 and finish before X_centroid
-        markers = column_ls[1:column_ls.index("X_centroid")-1]
+        markers = column_ls[1 : column_ls.index("X_centroid") - 1]
         self.model.markers_image_indices = {marker: i for i, marker in enumerate(markers)}
 
         for filter in self.model.marker_filter.split(","):
@@ -269,7 +270,7 @@ class SampleWidget(QWidget):
 
         self._scatter_widget = ScatterInputWidget(self.model, self.viewer)
         self.viewer.window.add_dock_widget(
-            self._scatter_widget, name="cell_gater", area="right", menu=self._viewer.window.window_menu
+            self._scatter_widget, name="cell_gater", area="right", menu=self._viewer.window.window_menu, tabify=True
         )
 
         self.model.validated = True
