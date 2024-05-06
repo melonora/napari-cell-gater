@@ -42,31 +42,24 @@ Writing this helps me organize my thoughts on what to do next
 
 Assumptions:
 files inside these directories are named according to the samples name.
-For example, the image for sample 1, should be named "1.ome.tif"; the mask file should be named "1.tif"; and the quantification file "1.csv"
+For example, the image for sample 1, should be named "1.ome.tif" or "1.tif"; the mask file should be named "1.tif"; and the quantification file "1.csv"
 
-2. Users will then select which channels to gate, default is all of them.
+2. Select the lowerbound and upperbound channels to gate.
 
-3. Users will then select a sample, and a marker from dropdown menus.
-    Upon selecting sample and marker.
-    3 layers will load:
-        1. the nuclear stain of the image (we assume it is channel 0, perhaps we can allow users to pick which one to use with dropdown)
-        2. the segmentation mask (as a labels layer) (for large images this might be a problem; Cylinter solves this by pyrimidazing a binary label)
-        3. the channel_to_be_gated
-    a Widget will appear showing a scatter plot (default: x-axis=channel_to_be_gated intensity, y-axis=Area) (y-axis could be change to another column)
-    underneath the scatterplot a slider will appear, the position of the slider will show up as a vertical line in the scatter plot
+3. Select a sample, and a marker from dropdown menus. Then click "Load Sample and Marker", 3 layers will load:   
+        (a.) the reference channel (default: first channel, changeable by dropdown menu)   
+        (b.) the segmentation mask (for large images this might be a problem)  
+        (c.) the channel_to_be_gated  
+A scatter plot (default: x-axis=channel_to_be_gated intensity, y-axis=Area) (y-axis can be changed by dropdown)      
+Underneath the scatterplot a slider will appear, the position of the slider will show up as a vertical line in the scatter plot  
 
-4. Users will then adjust the contrast with the Napari menu
-
-5. Users will drag the slider to what they think is correct
-
-6. User will click a button, which will then plot a points layer on top of the image.
-The points should be on the x,y coordenates of cells that have a channel intensity larger than the threshold picked by the slider.
-
-7. User will repeat steps 5 and 6 until satisfied
-
-8. User wil then click a button to save the gate for the current marker and sample.
-    Here either the next marker will load, or if all markers for a sample are done, go to next sample.
-    I prefer an automated switch, but we should allow a user to go back to sample_marker of interest for review.
+4. Adjust the contrast with the Napari layer menu (top left)
+5. Drag the slider to what they think is correct
+6. Click "Plot Points" to plot points on top of positive cells.
+7. Repeat steps 5 and 6 until satisfied.
+8. Click "Save Gate" to save the gate for the current marker and sample. Go to step 3 and repeat.
+9. Save the current gate values as a csv by clicking "Save Gates DataFrame".
+10. This csv file can also be loaded midway through the gating process.  
 
 ## Contributing
 
