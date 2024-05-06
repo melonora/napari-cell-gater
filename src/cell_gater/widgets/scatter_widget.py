@@ -1,48 +1,34 @@
 from __future__ import annotations
 
-from copy import copy
+import sys
+from itertools import product
 
+import pandas as pd
 from dask_image.imread import imread
+from loguru import logger
 from matplotlib.backends.backend_qt5agg import (
     FigureCanvas,
 )
-from matplotlib.backends.backend_qt5agg import (
-    NavigationToolbar2QT as NavigationToolbar,
-)
-
+from matplotlib.figure import Figure
+from matplotlib.widgets import Slider
+from napari import Viewer
+from napari.layers import Image, Points
 from napari.utils.history import (
     get_open_history,
-    update_open_history,
 )
-import napari
-from napari import Viewer
-from napari.layers import Points
-from napari.layers import Image
-from PyQt5.QtCore import Qt
 from qtpy.QtWidgets import (
     QComboBox,
-    QLabel,
-    QSizePolicy,
-    QVBoxLayout,
-    QPushButton,
-    QWidget,
+    QFileDialog,
     QGridLayout,
-    QSlider,
-    QFileDialog
+    QLabel,
+    QPushButton,
+    QSizePolicy,
+    QWidget,
 )
 
-from matplotlib.widgets import Slider
-from matplotlib.figure import Figure
-import matplotlib.pyplot as plt
-
 from cell_gater.model.data_model import DataModel
-from  cell_gater.utils.misc import napari_notification  
-import numpy as np
-import pandas as pd
-from itertools import product
-import sys
-import os
-from loguru import logger
+from cell_gater.utils.misc import napari_notification
+
 logger.remove()
 logger.add(sys.stdout, format="<green>{time:HH:mm:ss.SS}</green> | <level>{level}</level> | {message}")
 
@@ -419,6 +405,7 @@ class PlotCanvas():
         self._model = model
 
     def plot_scatter_plot(self, model: DataModel) -> None:
+        """Plot the scatter plot."""
         assert self.model.active_marker is not None
         assert self.model.active_sample is not None
 
