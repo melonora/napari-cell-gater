@@ -5,6 +5,7 @@ from napari.utils.notifications import (
 )
 
 
-def napari_notification(msg, severity=NotificationSeverity.INFO):
+def napari_notification(msg: str, severity: NotificationSeverity = NotificationSeverity.INFO) -> None:
+    """Display a napari notification within the napari viewer with a given severity."""
     notification_ = Notification(msg, severity=severity)
     notification_manager.dispatch(notification_)
