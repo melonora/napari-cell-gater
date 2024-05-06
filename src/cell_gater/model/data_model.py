@@ -7,6 +7,7 @@ from typing import Mapping, Sequence
 import pandas as pd
 from napari.utils.events import EmitterGroup, Event
 
+
 @dataclass
 class DataModel:
     """Model containing all necessary fields for gating."""
@@ -143,6 +144,10 @@ class DataModel:
         """The markers included for gating."""
         return self._markers
 
+    @markers.setter
+    def markers(self, markers: Sequence[str]) -> None:
+        self._markers = markers
+
     @property
     def markers_image_indices(self):
         """The markers included for gating."""
@@ -151,10 +156,6 @@ class DataModel:
     @markers_image_indices.setter
     def markers_image_indices(self, markers_image_indices: Sequence[str]) -> None:
         self._markers_image_indices = markers_image_indices
-
-    @markers.setter
-    def markers(self, markers: Sequence[str]) -> None:
-        self._markers = markers
 
     @property
     def active_marker(self):
@@ -178,7 +179,7 @@ class DataModel:
     def active_y_axis(self) -> str | None:
         """The marker currently used on y-axis for gating."""
         return self._active_y_axis
-    
+
     @active_y_axis.setter
     def active_y_axis(self, column: str) -> None:
         self._active_y_axis = column

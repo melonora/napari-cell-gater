@@ -1,58 +1,45 @@
 from __future__ import annotations
 
-from copy import copy
+import sys
+from itertools import product
 
+import pandas as pd
 from dask_image.imread import imread
+from loguru import logger
 from matplotlib.backends.backend_qt5agg import (
     FigureCanvas,
 )
-from matplotlib.backends.backend_qt5agg import (
-    NavigationToolbar2QT as NavigationToolbar,
-)
-
+from matplotlib.figure import Figure
+from matplotlib.widgets import Slider
+from napari import Viewer
+from napari.layers import Image, Points
 from napari.utils.history import (
     get_open_history,
-    update_open_history,
 )
-import napari
-from napari import Viewer
-from napari.layers import Points
-from napari.layers import Image
-from PyQt5.QtCore import Qt
 from qtpy.QtWidgets import (
     QComboBox,
-    QLabel,
-    QSizePolicy,
-    QVBoxLayout,
-    QPushButton,
-    QWidget,
+    QFileDialog,
     QGridLayout,
-    QSlider,
-    QFileDialog
+    QLabel,
+    QPushButton,
+    QSizePolicy,
+    QWidget,
 )
 
-from matplotlib.widgets import Slider
-from matplotlib.figure import Figure
-import matplotlib.pyplot as plt
-
 from cell_gater.model.data_model import DataModel
-from  cell_gater.utils.misc import napari_notification  
-import numpy as np
-import pandas as pd
-from itertools import product
-import sys
-import os
-from loguru import logger
+from cell_gater.utils.misc import napari_notification
+
 logger.remove()
 logger.add(sys.stdout, format="<green>{time:HH:mm:ss.SS}</green> | <level>{level}</level> | {message}")
 
-#Good to have features
-#TODO Dynamic loading of markers, without reloading masks or DNA channel, so deprecate Load Sample and Marker button
+# Good to have features
+# TODO Dynamic loading of markers, without reloading masks or DNA channel, so deprecate Load Sample and Marker button
 
-#Ideas to maybe implement
-#TODO log axis options for scatter plot
-#TODO dynamic plotting of points on top of created polygons
-#TODO save plots as images for QC, perhaps when saving gates run plotting function to go through all samples and markers and save plots
+# Ideas to maybe implement
+# TODO log axis options for scatter plot
+# TODO dynamic plotting of points on top of created polygons
+# TODO save plots as images for QC, perhaps when saving gates run plotting function to go through all samples and markers and save plots
+
 
 class ScatterInputWidget(QWidget):
     """Widget for a scatter plot with markers on the x axis and any dtype column on the y axis."""
@@ -78,7 +65,7 @@ class ScatterInputWidget(QWidget):
         # Dropdown of samples once directory is loaded
         selection_label = QLabel("Select sample:")
         self.sample_selection_dropdown = QComboBox()
-        self.sample_selection_dropdown.addItems(sorted(self.model.samples, key=self.natural_sort_key) )
+        self.sample_selection_dropdown.addItems(sorted(self.model.samples, key=self.natural_sort_key))
         self.sample_selection_dropdown.currentTextChanged.connect(self._on_sample_changed)
 
         marker_label = QLabel("Marker label:")
@@ -134,13 +121,10 @@ class ScatterInputWidget(QWidget):
         # plot points button
         plot_points_button = QPushButton("Plot Points")
         plot_points_button.clicked.connect(self.plot_points)
-        self.layout().addWidget(plot_points_button, 5,0,1,1)
+        self.layout().addWidget(plot_points_button, 5, 0, 1, 1)
 
-        # Initialize gates dataframe 
-        sample_marker_combinations = list(product(
-            self.model.regionprops_df["sample_id"].unique(),
-            self.model.markers
-        ))
+        # Initialize gates dataframe
+        sample_marker_combinations = list(product(self.model.regionprops_df["sample_id"].unique(), self.model.markers))
         self.model.gates = pd.DataFrame(sample_marker_combinations, columns=["sample_id", "marker_id"])
         self.model.gates["gate_value"] = float(0)
 
@@ -157,18 +141,20 @@ class ScatterInputWidget(QWidget):
         save_gates_dataframe_button.clicked.connect(self.save_gates_dataframe)
         self.layout().addWidget(save_gates_dataframe_button, 5, 3, 1, 1)
 
-
     ########################### FUNCTIONS ###########################
 
     def update_ref_channel(self):
+        """
+        Update the channel that is used as x label in the scatter plot and update image / label layers and scatter plot.
+        """
         self.model.active_ref_marker = self.ref_channel_dropdown.currentText()
         self._load_images_and_scatter_plot()
-    
+
     ###################
     ### PLOT POINTS ###
     ###################
 
-    #TODO dynamic plotting of points on top of created polygons
+    # TODO dynamic plotting of points on top of created polygons
 
     def plot_points(self):
         """Plot positive cells in Napari."""
@@ -196,6 +182,7 @@ class ScatterInputWidget(QWidget):
     ####################################
 
     def load_gates_dataframe(self):
+        """Load the csv containing the gates that already have been set previously."""
         file_path, _ = self._file_dialog()
         if file_path:
             self.model.gates = pd.read_csv(file_path)
@@ -207,13 +194,16 @@ class ScatterInputWidget(QWidget):
         # check if dataframe has the same samples and markers as the regionprops_df
         assert set(self.model.gates["sample_id"].unique()) == set(self.model.regionprops_df["sample_id"].unique())
         assert set(self.model.gates["marker_id"].unique()) == set(self.model.markers)
-    
+
     def save_gates_dataframe(self):
+        """Open a dialog to save the current set gates to a csv and save."""
         options = QFileDialog.Options()
-        fileName, _ = QFileDialog.getSaveFileName(self, "Save Gates Dataframe", "", "CSV Files (*.csv);;All Files (*)", options=options)
+        fileName, _ = QFileDialog.getSaveFileName(
+            self, "Save Gates Dataframe", "", "CSV Files (*.csv);;All Files (*)", options=options
+        )
         if fileName:
             self.model.gates.to_csv(fileName, index=False)
-            print("File saved to:", fileName)
+            napari_notification(f"File saved to: {fileName}")
 
     def save_gate(self):
         if self.model.current_gate == 0:
@@ -221,11 +211,14 @@ class ScatterInputWidget(QWidget):
         if self.access_gate() == self.model.current_gate:
             napari_notification("No changes detected.")
         if self.access_gate() != self.model.current_gate:
-            napari_notification(f"Old gate {self.access_gate().round(2)} overwritten to {self.model.current_gate.round(2)}")
+            napari_notification(
+                f"Old gate {self.access_gate().round(2)} overwritten to {self.model.current_gate.round(2)}"
+            )
         self.model.gates.loc[
-            (self.model.gates['sample_id'] == self.model.active_sample) & 
-            (self.model.gates['marker_id'] == self.model.active_marker), 
-            'gate_value'] = self.model.current_gate
+            (self.model.gates["sample_id"] == self.model.active_sample)
+            & (self.model.gates["marker_id"] == self.model.active_marker),
+            "gate_value",
+        ] = self.model.current_gate
         assert self.access_gate() == self.model.current_gate
         logger.debug(f"Gate saved: {self.model.current_gate}")
 
@@ -233,9 +226,10 @@ class ScatterInputWidget(QWidget):
         assert self.model.active_sample is not None
         assert self.model.active_marker is not None
         gate_value = self.model.gates.loc[
-            (self.model.gates['sample_id'] == self.model.active_sample) & 
-            (self.model.gates['marker_id'] == self.model.active_marker), 
-            'gate_value'].values[0]
+            (self.model.gates["sample_id"] == self.model.active_sample)
+            & (self.model.gates["marker_id"] == self.model.active_marker),
+            "gate_value",
+        ].values[0]
         assert isinstance(gate_value, float)
         return gate_value
 
@@ -255,7 +249,7 @@ class ScatterInputWidget(QWidget):
     def slider_changed(self, val):
         self.model._current_gate = val
         self.scatter_canvas.update_vertical_line(val)
-        self.scatter_canvas.fig.draw() 
+        self.scatter_canvas.fig.draw()
 
     def update_slider(self):
         min, max, init, step = self.get_min_max_median_step()
@@ -303,13 +297,9 @@ class ScatterInputWidget(QWidget):
             self._image[self.model.markers_image_indices[self.model.active_ref_marker]],
             name="Reference" + self.model.active_sample,
             blending="additive",
-            visible=False
+            visible=False,
         )
-        self.viewer.add_labels(
-            self._mask, 
-            name="mask_" + self.model.active_sample,
-            visible=False, opacity=0.4
-        )
+        self.viewer.add_labels(self._mask, name="mask_" + self.model.active_sample, visible=False, opacity=0.4)
         self.viewer.add_image(
             self._image[marker_index],
             name=self.model.active_marker + "_" + self.model.active_sample,
@@ -318,6 +308,7 @@ class ScatterInputWidget(QWidget):
 
     def _on_sample_changed(self):
         self.model.active_sample = self.sample_selection_dropdown.currentText()
+
     def _on_marker_changed(self):
         self.model.active_marker = self.marker_selection_dropdown.currentText()
 
@@ -373,6 +364,7 @@ class ScatterInputWidget(QWidget):
     def natural_sort_key(self, s):
         """Key function for natural sorting."""
         import re
+
         return [int(text) if text.isdigit() else text.lower() for text in re.split(r"(\d+)", s)]
 
     @property
@@ -393,17 +385,18 @@ class ScatterInputWidget(QWidget):
     def viewer(self, viewer: Viewer) -> None:
         self._viewer = viewer
 
-class PlotCanvas():
+
+class PlotCanvas:
     """The canvas class for the gating scatter plot."""
 
     def __init__(self, model: DataModel):
 
         self.model = DataModel() if model is None else model
-        self.fig = FigureCanvas(Figure()) 
+        self.fig: FigureCanvas = FigureCanvas(Figure())
         self.fig.figure.subplots_adjust(left=0.1, bottom=0.1)
         self.ax = self.fig.figure.subplots()
         self.ax.set_title("Scatter plot")
-        #run function to plot scatter plot
+        # run function to plot scatter plot
         self.plot_scatter_plot(self.model)
 
     @property
