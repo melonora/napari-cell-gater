@@ -144,9 +144,7 @@ class ScatterInputWidget(QWidget):
     ########################### FUNCTIONS ###########################
 
     def update_ref_channel(self):
-        """
-        Update the channel that is used as x label in the scatter plot and update image / label layers and scatter plot.
-        """
+        """Change the channel that is used as x label in the scatter plot and update napari layers and scatter plot."""
         self.model.active_ref_marker = self.ref_channel_dropdown.currentText()
         self._load_images_and_scatter_plot()
 
@@ -206,6 +204,7 @@ class ScatterInputWidget(QWidget):
             napari_notification(f"File saved to: {fileName}")
 
     def save_gate(self):
+        """Store the current gate in the gate dataframe."""
         if self.model.current_gate == 0:
             napari_notification("Gate not saved, please select a gate value.")
         if self.access_gate() == self.model.current_gate:
@@ -223,6 +222,7 @@ class ScatterInputWidget(QWidget):
         logger.debug(f"Gate saved: {self.model.current_gate}")
 
     def access_gate(self):
+        """Access a particular gate from the gate dataframe."""
         assert self.model.active_sample is not None
         assert self.model.active_marker is not None
         gate_value = self.model.gates.loc[
@@ -238,6 +238,7 @@ class ScatterInputWidget(QWidget):
     ##########################
 
     def get_min_max_median_step(self) -> tuple:
+        """Get the min, max and median intensity of a given channel and based on that determine step size of slider."""
         df = self.model.regionprops_df
         df = df[df["sample_id"] == self.model.active_sample]
         min = df[self.model.active_marker].min() + 1
@@ -247,11 +248,13 @@ class ScatterInputWidget(QWidget):
         return min, max, init, step
 
     def slider_changed(self, val):
+        """Update the current gate and the vertical line of the scatter plot on slider change."""
         self.model._current_gate = val
         self.scatter_canvas.update_vertical_line(val)
         self.scatter_canvas.fig.draw()
 
     def update_slider(self):
+        """Update scatter plot slider based on current channel to be gated."""
         min, max, init, step = self.get_min_max_median_step()
         self.slider_ax.clear()
         self.slider = Slider(self.slider_ax, "Gate", min, max, valinit=init, valstep=step, color="black")
@@ -263,6 +266,7 @@ class ScatterInputWidget(QWidget):
     ##########################
 
     def update_plot(self):
+        """Update scatter plot when channel (x label) or y label is changed."""
         self.scatter_canvas.ax.clear()
         self.scatter_canvas.plot_scatter_plot(self.model)
         self.scatter_canvas.fig.draw()
@@ -397,7 +401,7 @@ class PlotCanvas:
         self.ax = self.fig.figure.subplots()
         self.ax.set_title("Scatter plot")
         # run function to plot scatter plot
-        self.plot_scatter_plot(self.model)
+        self.plot_scatter_plot()
 
     @property
     def model(self) -> DataModel:
@@ -408,7 +412,8 @@ class PlotCanvas:
     def model(self, model: DataModel) -> None:
         self._model = model
 
-    def plot_scatter_plot(self, model: DataModel) -> None:
+    def plot_scatter_plot(self) -> None:
+        """Plot scatter plot based on current sample, marker and chosen y-axis."""
         assert self.model.active_marker is not None
         assert self.model.active_sample is not None
 
