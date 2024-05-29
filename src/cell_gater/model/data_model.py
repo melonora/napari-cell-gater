@@ -178,7 +178,7 @@ class DataModel:
     def active_y_axis(self) -> str | None:
         """The marker currently used on y-axis for gating."""
         return self._active_y_axis
-    
+
     @active_y_axis.setter
     def active_y_axis(self, column: str) -> None:
         self._active_y_axis = column
