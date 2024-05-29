@@ -165,7 +165,9 @@ class SampleWidget(QWidget):
         types = ("*.tif", "*.tiff")  # the tuple of file types
         self.model.mask_paths = []
         for ext in types:
-            self.model.mask_paths.extend(list(Path(folder).glob(ext)))
+            paths = list(Path(folder).glob(ext))
+            filtered_paths = [path for path in paths if not path.name.startswith(".")]
+            self.model.mask_paths.extend(filtered_paths)
 
         napari_notification(f"{len(self.model.mask_paths)} paths of masks loaded.")
 
