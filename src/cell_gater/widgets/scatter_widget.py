@@ -420,9 +420,9 @@ class PlotCanvas():
         assert self.model.active_sample is not None
 
         df = self.model.regionprops_df
+        logger.debug(f"sample_ids: {df.sample_id.unique()}")
         df = df[df["sample_id"] == self.model.active_sample]
-
-        logger.debug(f"Plotting scatter plot for {self.model.active_sample} and {self.model.active_marker}, shape {df.shape}.")
+        logger.debug(f"Plotting scatter plot for {self.model.active_sample} and {self.model.active_marker}, df.shape {df.shape}.")
 
         self.ax.scatter(
             x=df[self.model.active_marker],
