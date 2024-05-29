@@ -163,7 +163,7 @@ class ScatterInputWidget(QWidget):
     def update_ref_channel(self):
         self.model.active_ref_marker = self.ref_channel_dropdown.currentText()
         self._load_images_and_scatter_plot()
-    
+
     ###################
     ### PLOT POINTS ###
     ###################
@@ -207,7 +207,7 @@ class ScatterInputWidget(QWidget):
         # check if dataframe has the same samples and markers as the regionprops_df
         assert set(self.model.gates["sample_id"].unique()) == set(self.model.regionprops_df["sample_id"].unique())
         assert set(self.model.gates["marker_id"].unique()) == set(self.model.markers)
-    
+
     def save_gates_dataframe(self):
         options = QFileDialog.Options()
         fileName, _ = QFileDialog.getSaveFileName(self, "Save Gates Dataframe", "", "CSV Files (*.csv);;All Files (*)", options=options)
@@ -422,7 +422,7 @@ class PlotCanvas():
         df = self.model.regionprops_df
         df = df[df["sample_id"] == self.model.active_sample]
 
-        logger.debug(f"Plotting scatter plot for {self.model.active_sample} and {self.model.active_marker}.")
+        logger.debug(f"Plotting scatter plot for {self.model.active_sample} and {self.model.active_marker}, shape {df.shape}.")
 
         self.ax.scatter(
             x=df[self.model.active_marker],
