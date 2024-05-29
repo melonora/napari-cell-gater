@@ -24,7 +24,6 @@ from cell_gater.widgets.scatter_widget import ScatterInputWidget
 # TODO still having problem with number of channels
 # if user picks a marker that is on the fifth position of the df.columns, then there is a shift
 
-
 class SampleWidget(QWidget):
     """Sample widget for loading required data."""
 

@@ -255,7 +255,7 @@ class ScatterInputWidget(QWidget):
     def slider_changed(self, val):
         self.model._current_gate = val
         self.scatter_canvas.update_vertical_line(val)
-        self.scatter_canvas.fig.draw() 
+        self.scatter_canvas.fig.draw()
 
     def update_slider(self):
         min, max, init, step = self.get_min_max_median_step()
@@ -419,6 +419,8 @@ class PlotCanvas():
         assert self.model.active_marker is not None
         assert self.model.active_sample is not None
 
+        # Currently a problem that csv name (1 -- mesmer.csv) is not found with active_sample(1)
+
         df = self.model.regionprops_df
         logger.debug(f"sample_ids: {df.sample_id.unique()}")
         df = df[df["sample_id"] == self.model.active_sample]
@@ -446,4 +448,5 @@ class PlotCanvas():
 
     def update_vertical_line(self, x_position):
         """Update the position of the vertical line."""
-        self.ax.lines[0].set_xdata(x_position)
+        # self.ax.lines[0].set_xdata(x_position)
+        self.ax.lines[0].set_xdata([x_position, x_position])
