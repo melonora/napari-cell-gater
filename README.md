@@ -27,9 +27,15 @@ hook by running `pre-commit install` in the directory with the `.pre-commit-conf
 
 ## Installation
 
+Install napari (see https://napari.org/stable/tutorials/fundamentals/installation)
+
 You can install `napari-cell-gater` via [pip]:
 
     pip install napari-cell-gater
+
+or directly from github via [pip] with:
+
+    pip install git+https://github.com/melonora/napari-cell-gater.git@stable
 
 ## Visual Workflow 
 
