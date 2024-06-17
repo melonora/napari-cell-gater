@@ -26,6 +26,7 @@ from qtpy.QtWidgets import (
     QPushButton,
     QSizePolicy,
     QWidget,
+    QLineEdit,
 )
 
 from cell_gater.model.data_model import DataModel
@@ -90,17 +91,25 @@ class ScatterInputWidget(QWidget):
         self.ref_channel_dropdown.addItems(self.model.markers_image_indices.keys())
         self.ref_channel_dropdown.currentTextChanged.connect(self.update_ref_channel)
 
-        #logarithmic scale dropdown
+        # logarithmic scale dropdown
         log_label = QLabel("Logarithmic scale")
         self.log_scale_dropdown = QComboBox()
         self.log_scale_dropdown.addItems(["No", "Yes"])
         self.log_scale_dropdown.currentTextChanged.connect(self.update_log_scale)
 
-        #plot type dropdown
+        # plot type dropdown
         plot_type_label = QLabel("Plot type")
         self.plot_type_dropdown = QComboBox()
         self.plot_type_dropdown.addItems(["Scatter", "Hexbin"])
         self.plot_type_dropdown.currentTextChanged.connect(self.update_plot_type)
+
+        # manual input gate
+        manual_input_gate_label = QLabel("Manual gate input:")
+        self.manual_gate_input_text = QLineEdit()
+        self.manual_gate_input_text.setPlaceholderText("Enter gate value")
+
+        self.manual_gate_input_QPushButton = QPushButton("Set gate manually")
+        self.manual_gate_input_QPushButton.clicked.connect(self.manual_gate_input)
 
         # object, int row, int column, int rowSpan = 1, int columnSpan = 1
         self.layout().addWidget(selection_label, 0, 0)
@@ -137,10 +146,15 @@ class ScatterInputWidget(QWidget):
         self.update_slider()
         self.layout().addWidget(self.slider_canvas, 5, 0, 1, 4)
 
+        #manual input gate
+        self.layout().addWidget(manual_input_gate_label, 6, 0, 1, 1)
+        self.layout().addWidget(self.manual_gate_input_text, 6, 1, 1, 1)
+        self.layout().addWidget(self.manual_gate_input_QPushButton, 6, 2, 1, 2)
+
         # plot points button
         plot_points_button = QPushButton("Plot Points")
         plot_points_button.clicked.connect(self.plot_points)
-        self.layout().addWidget(plot_points_button, 6,0,1,1)
+        self.layout().addWidget(plot_points_button, 7,0,1,1)
 
         # Initialize gates dataframe
         sample_marker_combinations = list(product(
@@ -153,15 +167,15 @@ class ScatterInputWidget(QWidget):
         # gate buttons
         save_gate_button = QPushButton("Save Gate")
         save_gate_button.clicked.connect(self.save_gate)
-        self.layout().addWidget(save_gate_button, 6, 1, 1, 1)
+        self.layout().addWidget(save_gate_button, 7, 1, 1, 1)
 
         load_gates_button = QPushButton("Load Gates Dataframe")
         load_gates_button.clicked.connect(self.load_gates_dataframe)
-        self.layout().addWidget(load_gates_button, 6, 2, 1, 1)
+        self.layout().addWidget(load_gates_button, 7, 2, 1, 1)
 
         save_gates_dataframe_button = QPushButton("Save Gates Dataframe")
         save_gates_dataframe_button.clicked.connect(self.save_gates_dataframe)
-        self.layout().addWidget(save_gates_dataframe_button, 6, 3, 1, 1)
+        self.layout().addWidget(save_gates_dataframe_button, 7, 3, 1, 1)
 
     #################################################################
     ########################### FUNCTIONS ###########################
@@ -192,6 +206,14 @@ class ScatterInputWidget(QWidget):
         elif self.plot_type_dropdown.currentText() == "Hexbin":
             self.model.plot_type = "hexbin"
         logger.debug(f"Plot type set to {self.model.plot_type}.")
+        self.update_plot()
+
+    def manual_gate_input(self):
+        """Manual gate input."""
+        logger.info("Manual gate input initiated.")
+        logger.debug(f"Manual gate input: {self.manual_gate_input_text.text()}")
+        self.model.current_gate = float(self.manual_gate_input_text.text())
+        self.update_slider()
         self.update_plot()
 
     ###################
@@ -228,10 +250,6 @@ class ScatterInputWidget(QWidget):
     ### GATES DATAFRAME INPUT OUTPUT ###
     ####################################
 
-    def manual_gate_input(self):
-        """Manual gate input."""
-        logger.debug("Manual gate input initiated.")
-
     def load_gates_dataframe(self):
         """Load gates dataframe from csv."""
         file_path, _ = self._file_dialog()
@@ -261,7 +279,7 @@ class ScatterInputWidget(QWidget):
         if self.access_gate() == self.model.current_gate:
             napari_notification("No changes detected.")
         if self.access_gate() != self.model.current_gate:
-            napari_notification(f"Old gate {self.access_gate().round(2)} overwritten to {self.model.current_gate.round(2)}")
+            napari_notification(f"Old gate {round(self.access_gate(), 2)} overwritten to {round(self.model.current_gate, 2)}")
         self.model.gates.loc[
             (self.model.gates["sample_id"] == self.model.active_sample) &
             (self.model.gates["marker_id"] == self.model.active_marker),
@@ -317,6 +335,8 @@ class ScatterInputWidget(QWidget):
         """Update the slider with the min, max, median and step values."""
         logger.debug("Updating slider.")
         min, max, init, step = self.get_min_max_median_step()
+        if self.model.current_gate:
+            init = np.log10(self.model.current_gate) if self.model.log_scale else self.model.current_gate
         self.slider_ax.clear()
         self.slider = Slider(self.slider_ax, "Gate", min, max, valinit=init, valstep=step, color="black")
         self.slider.on_changed(self.slider_changed)
