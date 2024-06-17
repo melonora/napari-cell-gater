@@ -1,48 +1,36 @@
 from __future__ import annotations
 
-from copy import copy
+import sys
+from itertools import product
 
+import pandas as pd
+import numpy as np
 from dask_image.imread import imread
+from loguru import logger
 from matplotlib.backends.backend_qt5agg import (
     FigureCanvas,
 )
-from matplotlib.backends.backend_qt5agg import (
-    NavigationToolbar2QT as NavigationToolbar,
-)
-
+import matplotlib
+from matplotlib.figure import Figure
+from matplotlib.widgets import Slider
+from napari import Viewer
+from napari.layers import Image, Points
 from napari.utils.history import (
     get_open_history,
-    update_open_history,
 )
-import napari
-from napari import Viewer
-from napari.layers import Points
-from napari.layers import Image
-from PyQt5.QtCore import Qt
 from qtpy.QtWidgets import (
     QComboBox,
-    QLabel,
-    QSizePolicy,
-    QVBoxLayout,
-    QPushButton,
-    QWidget,
+    QFileDialog,
     QGridLayout,
-    QSlider,
-    QFileDialog
+    QLabel,
+    QPushButton,
+    QSizePolicy,
+    QWidget,
 )
 
-from matplotlib.widgets import Slider
-from matplotlib.figure import Figure
-import matplotlib.pyplot as plt
-
 from cell_gater.model.data_model import DataModel
-from  cell_gater.utils.misc import napari_notification  
-import numpy as np
-import pandas as pd
-from itertools import product
-import sys
-import os
-from loguru import logger
+from cell_gater.utils.misc import napari_notification
+
 logger.remove()
 logger.add(sys.stdout, format="<green>{time:HH:mm:ss.SS}</green> | <level>{level}</level> | {message}")
 
@@ -50,9 +38,11 @@ logger.add(sys.stdout, format="<green>{time:HH:mm:ss.SS}</green> | <level>{level
 #TODO Dynamic loading of markers, without reloading masks or DNA channel, so deprecate Load Sample and Marker button
 
 #Ideas to maybe implement
-#TODO log axis options for scatter plot
 #TODO dynamic plotting of points on top of created polygons
 #TODO save plots as images for QC, perhaps when saving gates run plotting function to go through all samples and markers and save plots
+
+# TODO manual gate input
+# TODO autosave gates
 
 class ScatterInputWidget(QWidget):
     """Widget for a scatter plot with markers on the x axis and any dtype column on the y axis."""
@@ -68,7 +58,6 @@ class ScatterInputWidget(QWidget):
 
         logger.debug("ScatterInputWidget initialized")
         logger.debug(f"Model regionprops_df shape: {self.model.regionprops_df.shape}")
-        logger.debug(f"Model regionprops_df columns: {self.model.regionprops_df.columns}")
 
         # Reason for setting current sample here as well is, so we can check whether we have to load a new mask.
         self._current_sample = None
@@ -101,6 +90,19 @@ class ScatterInputWidget(QWidget):
         self.ref_channel_dropdown.addItems(self.model.markers_image_indices.keys())
         self.ref_channel_dropdown.currentTextChanged.connect(self.update_ref_channel)
 
+        #logarithmic scale dropdown
+        log_label = QLabel("Logarithmic scale")
+        self.log_scale_dropdown = QComboBox()
+        self.log_scale_dropdown.addItems(["No", "Yes"])
+        self.log_scale_dropdown.currentTextChanged.connect(self.update_log_scale)
+
+        #plot type dropdown
+        plot_type_label = QLabel("Plot type")
+        self.plot_type_dropdown = QComboBox()
+        self.plot_type_dropdown.addItems(["Scatter", "Hexbin"])
+        self.plot_type_dropdown.currentTextChanged.connect(self.update_plot_type)
+
+        # object, int row, int column, int rowSpan = 1, int columnSpan = 1
         self.layout().addWidget(selection_label, 0, 0)
         self.layout().addWidget(self.sample_selection_dropdown, 0, 1)
         self.layout().addWidget(marker_label, 0, 2)
@@ -110,6 +112,10 @@ class ScatterInputWidget(QWidget):
         self.layout().addWidget(self.choose_y_axis_dropdown, 2, 1, 1, 1)
         self.layout().addWidget(DNA_to_show, 2, 2, 1, 1)
         self.layout().addWidget(self.ref_channel_dropdown, 2, 3, 1, 1)
+        self.layout().addWidget(log_label, 3, 0, 1, 1)
+        self.layout().addWidget(self.log_scale_dropdown, 3, 1, 1, 1)
+        self.layout().addWidget(plot_type_label, 3, 2, 1, 1)
+        self.layout().addWidget(self.plot_type_dropdown, 3, 3, 1, 1)
 
         # we have to do this because initially the dropdowns did not change texts yet so these variables are still None.
         self.model.active_sample = self.sample_selection_dropdown.currentText()
@@ -122,21 +128,21 @@ class ScatterInputWidget(QWidget):
 
         # scatter plot
         self.scatter_canvas = PlotCanvas(self.model)
-        self.layout().addWidget(self.scatter_canvas.fig, 3, 0, 1, 4)
+        self.layout().addWidget(self.scatter_canvas.fig, 4, 0, 1, 4)
 
         # slider
         self.slider_figure = Figure(figsize=(5, 1))
         self.slider_canvas = FigureCanvas(self.slider_figure)
         self.slider_ax = self.slider_figure.add_subplot(111)
         self.update_slider()
-        self.layout().addWidget(self.slider_canvas, 4, 0, 1, 4)
+        self.layout().addWidget(self.slider_canvas, 5, 0, 1, 4)
 
         # plot points button
         plot_points_button = QPushButton("Plot Points")
         plot_points_button.clicked.connect(self.plot_points)
-        self.layout().addWidget(plot_points_button, 5,0,1,1)
+        self.layout().addWidget(plot_points_button, 6,0,1,1)
 
-        # Initialize gates dataframe 
+        # Initialize gates dataframe
         sample_marker_combinations = list(product(
             self.model.regionprops_df["sample_id"].unique(),
             self.model.markers
@@ -147,28 +153,47 @@ class ScatterInputWidget(QWidget):
         # gate buttons
         save_gate_button = QPushButton("Save Gate")
         save_gate_button.clicked.connect(self.save_gate)
-        self.layout().addWidget(save_gate_button, 5, 1, 1, 1)
+        self.layout().addWidget(save_gate_button, 6, 1, 1, 1)
 
         load_gates_button = QPushButton("Load Gates Dataframe")
         load_gates_button.clicked.connect(self.load_gates_dataframe)
-        self.layout().addWidget(load_gates_button, 5, 2, 1, 1)
+        self.layout().addWidget(load_gates_button, 6, 2, 1, 1)
 
         save_gates_dataframe_button = QPushButton("Save Gates Dataframe")
         save_gates_dataframe_button.clicked.connect(self.save_gates_dataframe)
-        self.layout().addWidget(save_gates_dataframe_button, 5, 3, 1, 1)
+        self.layout().addWidget(save_gates_dataframe_button, 6, 3, 1, 1)
 
 
     ########################### FUNCTIONS ###########################
 
     def update_ref_channel(self):
+        """Update the reference channel for the scatter plot."""
         self.model.active_ref_marker = self.ref_channel_dropdown.currentText()
         self._load_images_and_scatter_plot()
+
+    def update_log_scale(self):
+        """Update the log scale for the scatter plot."""
+        logger.debug(f"Log scale dropdown changed to {self.log_scale_dropdown.currentText()}.")
+        if self.log_scale_dropdown.currentText() == "Yes":
+            self.model.log_scale = True
+        elif self.log_scale_dropdown.currentText() == "No":
+            self.model.log_scale = False
+        logger.debug(f"Log scale set to {self.model.log_scale}.")
+        self.update_plot()
+
+    def update_plot_type(self):
+        """Update the plot type for the plot."""
+        logger.debug(f"Plot type dropdown changed to {self.plot_type_dropdown.currentText()}.")
+        if self.plot_type_dropdown.currentText() == "Scatter":
+            self.model.plot_type = "scatter"
+        elif self.plot_type_dropdown.currentText() == "Hexbin":
+            self.model.plot_type = "hexbin"
+        logger.debug(f"Plot type set to {self.model.plot_type}.")
+        self.update_plot()
 
     ###################
     ### PLOT POINTS ###
     ###################
-
-    #TODO dynamic plotting of points on top of created polygons
 
     def plot_points(self):
         """Plot positive cells in Napari."""
@@ -182,13 +207,18 @@ class ScatterInputWidget(QWidget):
             if isinstance(layer, Points):
                 layer.visible = False
 
+        logger.info("Plotting points in Napari.")
+        logger.debug(f"self.model.active_sample: {self.model.active_sample}")
+        logger.debug(f"self.model.active_marker: {self.model.active_marker}")
+        logger.debug(f"self.model.current_gate: {self.model.current_gate}")
+
         self.viewer.add_points(
             df[df[self.model.active_marker] > self.model.current_gate][["Y_centroid", "X_centroid"]],
-            name=f"Gate: {round(self.model.current_gate)}  {self.model.active_sample} {self.model.active_marker}",
-            face_color="#ff00ff",
-            edge_color="yellow",
-            size=8,
-            opacity=0.5,
+            name=f"Gate: {round(self.model.current_gate)} | {self.model.active_sample}:{self.model.active_marker}",
+            face_color="yellow",
+            edge_color="black",
+            size=12,
+            opacity=0.6,
         )
 
     ####################################
@@ -196,6 +226,7 @@ class ScatterInputWidget(QWidget):
     ####################################
 
     def load_gates_dataframe(self):
+        """Load gates dataframe from csv."""
         file_path, _ = self._file_dialog()
         if file_path:
             self.model.gates = pd.read_csv(file_path)
@@ -209,13 +240,15 @@ class ScatterInputWidget(QWidget):
         assert set(self.model.gates["marker_id"].unique()) == set(self.model.markers)
 
     def save_gates_dataframe(self):
+        """Save gates dataframe to csv."""
         options = QFileDialog.Options()
         fileName, _ = QFileDialog.getSaveFileName(self, "Save Gates Dataframe", "", "CSV Files (*.csv);;All Files (*)", options=options)
         if fileName:
             self.model.gates.to_csv(fileName, index=False)
-            print("File saved to:", fileName)
+            napari_notification(f"File saved to: {fileName}")
 
     def save_gate(self):
+        """Save the current gate value to the gates dataframe."""
         if self.model.current_gate == 0:
             napari_notification("Gate not saved, please select a gate value.")
         if self.access_gate() == self.model.current_gate:
@@ -223,19 +256,20 @@ class ScatterInputWidget(QWidget):
         if self.access_gate() != self.model.current_gate:
             napari_notification(f"Old gate {self.access_gate().round(2)} overwritten to {self.model.current_gate.round(2)}")
         self.model.gates.loc[
-            (self.model.gates['sample_id'] == self.model.active_sample) & 
-            (self.model.gates['marker_id'] == self.model.active_marker), 
-            'gate_value'] = self.model.current_gate
+            (self.model.gates["sample_id"] == self.model.active_sample) &
+            (self.model.gates["marker_id"] == self.model.active_marker),
+            "gate_value"] = self.model.current_gate
         assert self.access_gate() == self.model.current_gate
         logger.debug(f"Gate saved: {self.model.current_gate}")
 
     def access_gate(self):
+        """Access the current gate value."""
         assert self.model.active_sample is not None
         assert self.model.active_marker is not None
         gate_value = self.model.gates.loc[
-            (self.model.gates['sample_id'] == self.model.active_sample) & 
-            (self.model.gates['marker_id'] == self.model.active_marker), 
-            'gate_value'].values[0]
+            (self.model.gates["sample_id"] == self.model.active_sample) &
+            (self.model.gates["marker_id"] == self.model.active_marker),
+            "gate_value"].values[0]
         assert isinstance(gate_value, float)
         return gate_value
 
@@ -244,6 +278,7 @@ class ScatterInputWidget(QWidget):
     ##########################
 
     def get_min_max_median_step(self) -> tuple:
+        """Get the min, max, median and step for the slider."""
         df = self.model.regionprops_df
         df = df[df["sample_id"] == self.model.active_sample]
         min = df[self.model.active_marker].min() + 1
@@ -253,11 +288,14 @@ class ScatterInputWidget(QWidget):
         return min, max, init, step
 
     def slider_changed(self, val):
+        """Update the current gate value and the vertical line on the scatter plot."""
         self.model._current_gate = val
         self.scatter_canvas.update_vertical_line(val)
         self.scatter_canvas.fig.draw()
 
     def update_slider(self):
+        """Update the slider with the min, max, median and step values."""
+        logger.debug("Updating slider.")
         min, max, init, step = self.get_min_max_median_step()
         self.slider_ax.clear()
         self.slider = Slider(self.slider_ax, "Gate", min, max, valinit=init, valstep=step, color="black")
@@ -269,56 +307,57 @@ class ScatterInputWidget(QWidget):
     ##########################
 
     def update_plot(self):
+        """Update the scatter plot."""
         self.scatter_canvas.ax.clear()
         self.scatter_canvas.plot_scatter_plot(self.model)
         self.scatter_canvas.fig.draw()
 
     def _load_images_and_scatter_plot(self):
+        """Load images and scatter plot."""
         self._clear_layers(clear_all=True)
         self._read_data(self.model.active_sample)
-        # active marker is a string
-        # markers is dict with marker_name_string:index (based on dropdowns)
         self._load_layers(self.model.markers_image_indices[self.model.active_marker])
         logger.debug(f"loading index {self.model.markers_image_indices[self.model.active_marker]}")
         self.update_plot()
         self.update_slider()
 
     def _read_data(self, sample: str | None) -> None:
+        """Read the image and mask data for the selected sample."""
         logger.info(f"Reading data for sample {sample}.")
         if sample is not None:
             logger.debug(f"Reading image from {self.model.sample_image_mapping[sample]}.")
             image_path = self.model.sample_image_mapping[sample]
             logger.debug(f"Reading mask from {self.model.sample_mask_mapping[sample]}.")
             mask_path = self.model.sample_mask_mapping[sample]
-
             self._image = imread(image_path)
             self._mask = imread(mask_path)
 
     def _load_layers(self, marker_index):
-
-        # if self.model.active_sample != self._current_sample:
-        #     self._current_sample = copy(self.model.active_sample)
-
+        """Load the image and mask layers into the napari viewer."""
         self.viewer.add_image(
             self._image[self.model.markers_image_indices[self.model.active_ref_marker]],
-            name="Reference" + self.model.active_sample,
+            name= self.model.active_ref_marker + "_" + self.model.active_sample,
             blending="additive",
-            visible=False
+            visible=False,
+            colormap="magenta",
         )
         self.viewer.add_labels(
-            self._mask, 
+            self._mask,
             name="mask_" + self.model.active_sample,
-            visible=False, opacity=0.4
+            visible=False, opacity=0.4,
         )
         self.viewer.add_image(
             self._image[marker_index],
             name=self.model.active_marker + "_" + self.model.active_sample,
             blending="additive",
+            colormap="green"
         )
 
     def _on_sample_changed(self):
+        """Set active sample and update the scatter plot."""
         self.model.active_sample = self.sample_selection_dropdown.currentText()
     def _on_marker_changed(self):
+        """Set active marker and update the scatter plot."""
         self.model.active_marker = self.marker_selection_dropdown.currentText()
 
     def _clear_layers(self, clear_all: bool) -> None:
@@ -399,7 +438,7 @@ class PlotCanvas():
     def __init__(self, model: DataModel):
 
         self.model = DataModel() if model is None else model
-        self.fig = FigureCanvas(Figure()) 
+        self.fig = FigureCanvas(Figure())
         self.fig.figure.subplots_adjust(left=0.1, bottom=0.1)
         self.ax = self.fig.figure.subplots()
         self.ax.set_title("Scatter plot")
@@ -416,31 +455,34 @@ class PlotCanvas():
         self._model = model
 
     def plot_scatter_plot(self, model: DataModel) -> None:
+        """Plot the scatter plot."""
         assert self.model.active_marker is not None
         assert self.model.active_sample is not None
 
-        # Currently a problem that csv name (1 -- mesmer.csv) is not found with active_sample(1)
-
         df = self.model.regionprops_df
-        logger.debug(f"sample_ids: {df.sample_id.unique()}")
         df = df[df["sample_id"] == self.model.active_sample]
         logger.debug(f"Plotting scatter plot for {self.model.active_sample} and {self.model.active_marker}, df.shape {df.shape}.")
 
+        x_data = df[self.model.active_marker]
+        y_data = df[self.model.active_y_axis]
+
+        if self.model.log_scale:
+            self.ax.set_xscale("log")
+            self.ax.set_yscale("log")
+
         self.ax.scatter(
-            x=df[self.model.active_marker],
-            y=df[self.model.active_y_axis],
+            x=x_data, y=y_data,
             color="steelblue",
             ec="white",
-            lw=0.1,
-            alpha=1.0,
+            lw=0.1, alpha=1.0,
             s=80000 / int(df.shape[0]),
         )
+
         # Set x-axis limits
         self.ax.set_xlim(df[self.model.active_marker].min(), df[self.model.active_marker].max())
         self.ax.set_ylabel(self.model.active_y_axis)
         self.ax.set_xlabel(f"{self.model.active_marker} intensity")
 
-        logger.debug(f"The current gate is {self.model.current_gate}.")
         if self.model.current_gate > 0.0:
             self.ax.axvline(x=self.model.current_gate, color="red", linewidth=1.0, linestyle="--")
         else:

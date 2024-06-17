@@ -31,6 +31,9 @@ class DataModel:
     _active_y_axis: str | None = field(default=None, init=False)
     _active_ref_marker: str | None = field(default=None, init=False)
 
+    _log_scale: bool = field(default=False, init=False)
+    _plot_type: str = field(default="scatter", init=False)
+
     _gates: pd.DataFrame = field(default_factory=pd.DataFrame, init=False)
     _current_gate: float = field(default_factory=float, init=False)
 
@@ -182,6 +185,24 @@ class DataModel:
     @active_y_axis.setter
     def active_y_axis(self, column: str) -> None:
         self._active_y_axis = column
+
+    @property
+    def log_scale(self) -> bool:
+        """Whether the y-axis is in log scale."""
+        return self._log_scale
+
+    @log_scale.setter
+    def log_scale(self, log_scale: bool) -> None:
+        self._log_scale = log_scale
+
+    @property
+    def plot_type(self) -> str:
+        """The plot type."""
+        return self._plot_type
+
+    @plot_type.setter
+    def plot_type(self, plot_type: str) -> None:
+        self._plot_type = plot_type
 
     @property
     def marker_filter(self):
