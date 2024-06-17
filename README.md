@@ -9,6 +9,9 @@
 
 A plugin to perform cell marker gating for multiplexed immunofluorescent imaging
 
+![Screenshot 2024-06-17 at 19 34 17](https://github.com/melonora/napari-cell-gater/assets/30318135/f469c380-ef53-42d6-a136-ebcae723e987)
+
+
 ----------------------------------
 
 This [napari] plugin was generated with [Cookiecutter] using [@napari]'s [cookiecutter-napari-plugin] template.
