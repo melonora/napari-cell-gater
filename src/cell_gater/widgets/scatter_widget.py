@@ -3,14 +3,13 @@ from __future__ import annotations
 import sys
 from itertools import product
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 from dask_image.imread import imread
 from loguru import logger
 from matplotlib.backends.backend_qt5agg import (
     FigureCanvas,
 )
-import matplotlib
 from matplotlib.figure import Figure
 from matplotlib.widgets import Slider
 from napari import Viewer
@@ -23,10 +22,10 @@ from qtpy.QtWidgets import (
     QFileDialog,
     QGridLayout,
     QLabel,
+    QLineEdit,
     QPushButton,
     QSizePolicy,
     QWidget,
-    QLineEdit,
 )
 
 from cell_gater.model.data_model import DataModel
@@ -36,14 +35,12 @@ logger.remove()
 logger.add(sys.stdout, format="<green>{time:HH:mm:ss.SS}</green> | <level>{level}</level> | {message}")
 
 #Good to have features
-#TODO Dynamic loading of markers, without reloading masks or DNA channel, so deprecate Load Sample and Marker button
+# TODO Dynamic loading of markers, without reloading masks or DNA channel, so deprecate Load Sample and Marker button
+# TODO autosave gates
 
 #Ideas to maybe implement
 #TODO dynamic plotting of points on top of created polygons
 #TODO save plots as images for QC, perhaps when saving gates run plotting function to go through all samples and markers and save plots
-
-# TODO manual gate input
-# TODO autosave gates
 
 class ScatterInputWidget(QWidget):
     """Widget for a scatter plot with markers on the x axis and any dtype column on the y axis."""
