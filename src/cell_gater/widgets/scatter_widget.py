@@ -163,8 +163,9 @@ class ScatterInputWidget(QWidget):
         save_gates_dataframe_button.clicked.connect(self.save_gates_dataframe)
         self.layout().addWidget(save_gates_dataframe_button, 6, 3, 1, 1)
 
-
+    #################################################################
     ########################### FUNCTIONS ###########################
+    #################################################################
 
     def update_ref_channel(self):
         """Update the reference channel for the scatter plot."""
@@ -179,6 +180,8 @@ class ScatterInputWidget(QWidget):
         elif self.log_scale_dropdown.currentText() == "No":
             self.model.log_scale = False
         logger.debug(f"Log scale set to {self.model.log_scale}.")
+
+        self.update_slider()
         self.update_plot()
 
     def update_plot_type(self):
@@ -224,6 +227,10 @@ class ScatterInputWidget(QWidget):
     ####################################
     ### GATES DATAFRAME INPUT OUTPUT ###
     ####################################
+
+    def manual_gate_input(self):
+        """Manual gate input."""
+        logger.debug("Manual gate input initiated.")
 
     def load_gates_dataframe(self):
         """Load gates dataframe from csv."""
@@ -281,16 +288,29 @@ class ScatterInputWidget(QWidget):
         """Get the min, max, median and step for the slider."""
         df = self.model.regionprops_df
         df = df[df["sample_id"] == self.model.active_sample]
-        min = df[self.model.active_marker].min() + 1
-        max = df[self.model.active_marker].max()
-        init = df[self.model.active_marker].median()
-        step = min / 100
+        if self.model.log_scale:
+            # df = df[df[self.model.active_marker]] + 1
+            marker_values = df[self.model.active_marker] + 1
+            min = np.log10(marker_values.min())
+            max = np.log10(marker_values.max())
+            init = np.log10(marker_values.median())
+            step = 0.0001
+        elif not self.model.log_scale:
+            min = df[self.model.active_marker].min() + 1
+            max = df[self.model.active_marker].max()
+            init = df[self.model.active_marker].median()
+            step = min / 100
+        logger.debug(f"min: {min}, max: {max}, init: {init}, step: {step}")
         return min, max, init, step
 
     def slider_changed(self, val):
         """Update the current gate value and the vertical line on the scatter plot."""
-        self.model._current_gate = val
-        self.scatter_canvas.update_vertical_line(val)
+        if self.model.log_scale:
+            self.model._current_gate = 10**val
+            self.scatter_canvas.update_vertical_line(10**val)
+        elif not self.model.log_scale:
+            self.model._current_gate = val
+            self.scatter_canvas.update_vertical_line(val)
         self.scatter_canvas.fig.draw()
 
     def update_slider(self):
@@ -456,27 +476,37 @@ class PlotCanvas():
 
     def plot_scatter_plot(self, model: DataModel) -> None:
         """Plot the scatter plot."""
-        assert self.model.active_marker is not None
-        assert self.model.active_sample is not None
-
         df = self.model.regionprops_df
         df = df[df["sample_id"] == self.model.active_sample]
-        logger.debug(f"Plotting scatter plot for {self.model.active_sample} and {self.model.active_marker}, df.shape {df.shape}.")
+        logger.debug(f"Plotting for {self.model.active_sample} and {self.model.active_marker}, df.shape {df.shape}.")
 
         x_data = df[self.model.active_marker]
         y_data = df[self.model.active_y_axis]
 
         if self.model.log_scale:
+            x_data = x_data + 1
             self.ax.set_xscale("log")
             self.ax.set_yscale("log")
 
-        self.ax.scatter(
-            x=x_data, y=y_data,
-            color="steelblue",
-            ec="white",
-            lw=0.1, alpha=1.0,
-            s=80000 / int(df.shape[0]),
-        )
+        if self.model.plot_type == "scatter":
+            self.ax.scatter(
+                x=x_data, y=y_data,
+                color="steelblue",
+                ec="white",
+                lw=0.1, alpha=1.0,
+                s=80000 / int(df.shape[0]),
+            )
+        elif self.model.plot_type == "hexbin" and self.model.log_scale is True:
+            self.ax.hexbin(
+                x=x_data, y=y_data,
+                gridsize=50, cmap="viridis",
+                bins="log",xscale="log", yscale="log",
+            )
+        elif self.model.plot_type == "hexbin" and self.model.log_scale is False:
+            self.ax.hexbin(
+                x=x_data, y=y_data,
+                gridsize=50, cmap="viridis",
+            )
 
         # Set x-axis limits
         self.ax.set_xlim(df[self.model.active_marker].min(), df[self.model.active_marker].max())
@@ -490,5 +520,4 @@ class PlotCanvas():
 
     def update_vertical_line(self, x_position):
         """Update the position of the vertical line."""
-        # self.ax.lines[0].set_xdata(x_position)
         self.ax.lines[0].set_xdata([x_position, x_position])
