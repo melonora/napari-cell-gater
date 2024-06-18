@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import sys
 from itertools import product
 
@@ -157,23 +158,21 @@ class ScatterInputWidget(QWidget):
         # Initialize gates dataframe
         sample_marker_combinations = list(product(
             self.model.regionprops_df["sample_id"].unique(),
-            self.model.markers
-        ))
+            self.model.markers))
         self.model.gates = pd.DataFrame(sample_marker_combinations, columns=["sample_id", "marker_id"])
         self.model.gates["gate_value"] = float(0)
+
+        # autosave path
+        self.csv_path = None
 
         # gate buttons
         save_gate_button = QPushButton("Save Gate")
         save_gate_button.clicked.connect(self.save_gate)
         self.layout().addWidget(save_gate_button, 7, 1, 1, 1)
 
-        load_gates_button = QPushButton("Load Gates Dataframe")
+        load_gates_button = QPushButton("Load existing gates")
         load_gates_button.clicked.connect(self.load_gates_dataframe)
-        self.layout().addWidget(load_gates_button, 7, 2, 1, 1)
-
-        save_gates_dataframe_button = QPushButton("Save Gates Dataframe")
-        save_gates_dataframe_button.clicked.connect(self.save_gates_dataframe)
-        self.layout().addWidget(save_gates_dataframe_button, 7, 3, 1, 1)
+        self.layout().addWidget(load_gates_button, 7, 2, 1, 2)
 
     #################################################################
     ########################### FUNCTIONS ###########################
@@ -249,40 +248,74 @@ class ScatterInputWidget(QWidget):
     ####################################
 
     def load_gates_dataframe(self):
-        """Load gates dataframe from csv."""
+        """Load gates dataframe from csv. Button."""
+        #select a file
         file_path, _ = self._file_dialog()
         if file_path:
             self.model.gates = pd.read_csv(file_path)
+        # check file has same samples
         self.model.gates["sample_id"] = self.model.gates["sample_id"].astype(str)
         # check if dataframe has samples and markers
-        assert "sample_id" in self.model.gates.columns
-        assert "marker_id" in self.model.gates.columns
-        assert "gate_value" in self.model.gates.columns
-        # check if dataframe has the same samples and markers as the regionprops_df
-        assert set(self.model.gates["sample_id"].unique()) == set(self.model.regionprops_df["sample_id"].unique())
-        assert set(self.model.gates["marker_id"].unique()) == set(self.model.markers)
+        assert "sample_id" in self.model.gates.columns, "sample_id column not found in gates dataframe."
+        assert "marker_id" in self.model.gates.columns, "marker_id column not found in gates dataframe."
+        assert "gate_value" in self.model.gates.columns, "gate_value column not found in gates dataframe."
+
+        logger.debug(f"self.model.markers: {set(self.model.markers)}")
+        logger.debug(f"self.model.gates.marker_id.unique(): {set(self.model.gates.marker_id.unique())}")
+
+        assert set(self.model.gates["sample_id"].unique()) == set(self.model.regionprops_df["sample_id"].unique()), "Samples in gates dataframe do not match samples loaded."
+        assert set(self.model.gates["marker_id"].unique()) == set(self.model.markers), "Markers in gates dataframe do not match markers loaded."
+        self.csv_path = file_path
+        logger.debug(f"Gates dataframe from {file_path} loaded and checked.")
+        napari_notification(f"Gates dataframe loaded from: {file_path}")
+
+    def select_save_directory(self):
+        """Select the directory where the gates CSV file will be saved. Button."""
+        if self.csv_path:
+            logger.debug(f"Save directory already selected: {self.csv_path}")
+            napari_notification(f"Save directory already selected: {self.csv_path}")
+        else:
+            # select a filename to create csv file
+            fileName, _ = QFileDialog.getSaveFileName(self, "Save gates in csv", "", "CSV Files (*.csv);;All Files (*)", options=QFileDialog.Options())
+            if fileName:
+                self.csv_path = fileName
+                logger.debug(f"Save directory selected: {self.csv_path}")
+                napari_notification(f"Save directory selected: {self.csv_path}")
+
+            # directory = QFileDialog.getExistingDirectory(self, "Select Save Directory", options=QFileDialog.Options())
+            # if directory:
+            #     self.csv_path = os.path.join(directory, "gates.csv")
+            #     logger.debug(f"Save directory selected: {self.csv_path}")
+            #     napari_notification(f"Save directory selected: {self.csv_path}")
 
     def save_gates_dataframe(self):
-        """Save gates dataframe to csv."""
-        options = QFileDialog.Options()
-        fileName, _ = QFileDialog.getSaveFileName(self, "Save Gates Dataframe", "", "CSV Files (*.csv);;All Files (*)", options=options)
-        if fileName:
-            self.model.gates.to_csv(fileName, index=False)
-            napari_notification(f"File saved to: {fileName}")
+        """Save gates dataframe to csv. Not a button."""
+        if not self.csv_path:
+            self.select_save_directory()
+
+        if self.csv_path:
+            self.model.gates.to_csv(self.csv_path, index=False)
+            logger.debug(f"Gates dataframe saved to {self.csv_path}")
+            napari_notification(f"File saved to: {self.csv_path}")
 
     def save_gate(self):
         """Save the current gate value to the gates dataframe."""
         if self.model.current_gate == 0:
             napari_notification("Gate not saved, please select a gate value.")
+            return
         if self.access_gate() == self.model.current_gate:
             napari_notification("No changes detected.")
+            return
         if self.access_gate() != self.model.current_gate:
             napari_notification(f"Old gate {round(self.access_gate(), 2)} overwritten to {round(self.model.current_gate, 2)}")
+
         self.model.gates.loc[
             (self.model.gates["sample_id"] == self.model.active_sample) &
             (self.model.gates["marker_id"] == self.model.active_marker),
             "gate_value"] = self.model.current_gate
+
         assert self.access_gate() == self.model.current_gate
+        self.save_gates_dataframe()
         logger.debug(f"Gate saved: {self.model.current_gate}")
 
     def access_gate(self):
