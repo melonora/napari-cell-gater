@@ -85,7 +85,7 @@ class ScatterInputWidget(QWidget):
         self.choose_y_axis_dropdown.currentTextChanged.connect(self._on_y_axis_changed)
 
         # Reference channel
-        DNA_to_show = QLabel("Select reference channel")
+        ref_channel = QLabel("Select reference channel")
         self.ref_channel_dropdown = QComboBox()
         self.ref_channel_dropdown.addItems(self.model.markers_image_indices.keys())
         self.ref_channel_dropdown.currentTextChanged.connect(self.update_ref_channel)
@@ -117,7 +117,7 @@ class ScatterInputWidget(QWidget):
         self.layout().addWidget(apply_button, 1, 0, 1, 4)
         self.layout().addWidget(choose_y_axis_label, 2, 0, 1, 1)
         self.layout().addWidget(self.choose_y_axis_dropdown, 2, 1, 1, 1)
-        self.layout().addWidget(DNA_to_show, 2, 2, 1, 1)
+        self.layout().addWidget(ref_channel, 2, 2, 1, 1)
         self.layout().addWidget(self.ref_channel_dropdown, 2, 3, 1, 1)
         self.layout().addWidget(log_label, 3, 0, 1, 1)
         self.layout().addWidget(self.log_scale_dropdown, 3, 1, 1, 1)
@@ -178,9 +178,9 @@ class ScatterInputWidget(QWidget):
     #################################################################
 
     def update_ref_channel(self):
-        """Update the reference channel for the scatter plot."""
+        """Update the reference channel for visualization."""
         self.model.active_ref_marker = self.ref_channel_dropdown.currentText()
-        self._load_images_and_scatter_plot()
+        self.load_ref_channel()
 
     def update_log_scale(self):
         """Update the log scale for the scatter plot."""
@@ -247,7 +247,7 @@ class ScatterInputWidget(QWidget):
     ####################################
 
     def load_gates_dataframe(self):
-        """Load gates dataframe from csv. Button."""
+        """Load gates dataframe from csv."""
         #select a file
         file_path, _ = self._file_dialog()
         if file_path:
@@ -269,26 +269,19 @@ class ScatterInputWidget(QWidget):
         napari_notification(f"Gates dataframe loaded from: {file_path}")
 
     def select_save_directory(self):
-        """Select the directory where the gates CSV file will be saved. Button."""
+        """Select the directory where the gates CSV file will be saved."""
         if self.csv_path:
             logger.debug(f"Save directory already selected: {self.csv_path}")
             napari_notification(f"Save directory already selected: {self.csv_path}")
         else:
-            # select a filename to create csv file
             fileName, _ = QFileDialog.getSaveFileName(self, "Save gates in csv", "", "CSV Files (*.csv);;All Files (*)", options=QFileDialog.Options())
             if fileName:
                 self.csv_path = fileName
                 logger.debug(f"Save directory selected: {self.csv_path}")
                 napari_notification(f"Save directory selected: {self.csv_path}")
 
-            # directory = QFileDialog.getExistingDirectory(self, "Select Save Directory", options=QFileDialog.Options())
-            # if directory:
-            #     self.csv_path = os.path.join(directory, "gates.csv")
-            #     logger.debug(f"Save directory selected: {self.csv_path}")
-            #     napari_notification(f"Save directory selected: {self.csv_path}")
-
     def save_gates_dataframe(self):
-        """Save gates dataframe to csv. Not a button."""
+        """Save gates dataframe to csv."""
         if not self.csv_path:
             self.select_save_directory()
 
@@ -387,7 +380,6 @@ class ScatterInputWidget(QWidget):
         self._clear_layers(clear_all=True)
         self._read_data(self.model.active_sample)
         self._load_layers(self.model.markers_image_indices[self.model.active_marker])
-        logger.debug(f"loading index {self.model.markers_image_indices[self.model.active_marker]}")
         self.update_plot()
         self.update_slider()
 
@@ -402,19 +394,27 @@ class ScatterInputWidget(QWidget):
             self._image = imread(image_path)
             self._mask = imread(mask_path)
 
-    def _load_layers(self, marker_index):
-        """Load the image and mask layers into the napari viewer."""
+    def load_ref_channel(self):
+        """Load the reference channel."""
+        for layer in self.viewer.layers:
+            if isinstance(layer, Image) and "REF:" in layer.name:
+                self.viewer.layers.remove(layer)
+
         self.viewer.add_image(
             self._image[self.model.markers_image_indices[self.model.active_ref_marker]],
-            name= self.model.active_ref_marker + "_" + self.model.active_sample,
+            name="REF:" + self.model.active_ref_marker + "_" + self.model.active_sample,
             blending="additive",
-            visible=False,
+            visible=True,
             colormap="magenta",
         )
+
+    def _load_layers(self, marker_index):
+        """Load the image and mask layers into the napari viewer."""
+        self.load_ref_channel()
         self.viewer.add_labels(
             self._mask,
             name="mask_" + self.model.active_sample,
-            visible=False, opacity=0.4,
+            visible=False, opacity=0.4
         )
         self.viewer.add_image(
             self._image[marker_index],
