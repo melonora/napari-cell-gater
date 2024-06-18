@@ -21,8 +21,6 @@ from cell_gater.utils.csv_df import stack_csv_files
 from cell_gater.utils.misc import napari_notification
 from cell_gater.widgets.scatter_widget import ScatterInputWidget
 
-# TODO still having problem with number of channels
-# if user picks a marker that is on the fifth position of the df.columns, then there is a shift
 
 class SampleWidget(QWidget):
     """Sample widget for loading required data."""
@@ -53,7 +51,7 @@ class SampleWidget(QWidget):
         load_label = QLabel("Load data:")
         self.layout().addWidget(load_label, 0, 0)
         # Open sample directory dialog
-        self.load_samples_button = QPushButton("Load regionprops dir")
+        self.load_samples_button = QPushButton("Load quantifications dir")
         self.load_samples_button.clicked.connect(self._open_sample_dialog)
         self.layout().addWidget(self.load_samples_button, 0, 1)
 

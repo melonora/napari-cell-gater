@@ -37,6 +37,7 @@ logger.add(sys.stdout, format="<green>{time:HH:mm:ss.SS}</green> | <level>{level
 #Good to have features
 # TODO Dynamic loading of markers, without reloading masks or DNA channel, so deprecate Load Sample and Marker button
 # TODO autosave gates
+# TODO changing reference channel should not reload mask and marker image
 
 #Ideas to maybe implement
 #TODO dynamic plotting of points on top of created polygons
