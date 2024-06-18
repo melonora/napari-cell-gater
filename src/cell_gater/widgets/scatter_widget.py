@@ -105,7 +105,7 @@ class ScatterInputWidget(QWidget):
         # manual input gate
         manual_input_gate_label = QLabel("Manual gate input:")
         self.manual_gate_input_text = QLineEdit()
-        self.manual_gate_input_text.setPlaceholderText("Enter gate value (linear scale)")
+        self.manual_gate_input_text.setPlaceholderText("Gate value (linear scale)")
         self.manual_gate_input_QPushButton = QPushButton("Set gate manually")
         self.manual_gate_input_QPushButton.clicked.connect(self.manual_gate_input)
 
