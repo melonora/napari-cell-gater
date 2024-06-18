@@ -36,9 +36,6 @@ logger.remove()
 logger.add(sys.stdout, format="<green>{time:HH:mm:ss.SS}</green> | <level>{level}</level> | {message}")
 
 #Good to have features
-# TODO Dynamic loading of markers, without reloading masks or DNA channel, so deprecate Load Sample and Marker button
-# TODO autosave gates
-# TODO changing reference channel should not reload mask and marker image
 
 #Ideas to maybe implement
 #TODO dynamic plotting of points on top of created polygons
@@ -75,8 +72,8 @@ class ScatterInputWidget(QWidget):
         self.marker_selection_dropdown.addItems(self.model.markers)
         self.marker_selection_dropdown.currentTextChanged.connect(self._on_marker_changed)
 
-        apply_button = QPushButton("Load Sample and Marker")
-        apply_button.clicked.connect(self._load_images_and_scatter_plot)
+        # apply_button = QPushButton("Load Sample and Marker")
+        # apply_button.clicked.connect(self._load_images_and_scatter_plot)
 
         choose_y_axis_label = QLabel("Choose Y-axis")
         self.choose_y_axis_dropdown = QComboBox()
@@ -114,7 +111,7 @@ class ScatterInputWidget(QWidget):
         self.layout().addWidget(self.sample_selection_dropdown, 0, 1)
         self.layout().addWidget(marker_label, 0, 2)
         self.layout().addWidget(self.marker_selection_dropdown, 0, 3)
-        self.layout().addWidget(apply_button, 1, 0, 1, 4)
+        # self.layout().addWidget(apply_button, 1, 0, 1, 4)
         self.layout().addWidget(choose_y_axis_label, 2, 0, 1, 1)
         self.layout().addWidget(self.choose_y_axis_dropdown, 2, 1, 1, 1)
         self.layout().addWidget(ref_channel, 2, 2, 1, 1)
@@ -130,8 +127,11 @@ class ScatterInputWidget(QWidget):
         self.model.active_y_axis = self.choose_y_axis_dropdown.currentText()
         self.model.active_ref_marker = self.ref_channel_dropdown.currentText()
 
-        self._read_data(self.model.active_sample)
-        self._load_layers(self.model.markers_image_indices[self.model.active_marker])
+        self._read_marker_image()
+        self._read_mask_image()
+        self._load_labels()
+        self._load_image()
+        self.load_ref_channel()
 
         # scatter plot
         self.scatter_canvas = PlotCanvas(self.model)
@@ -212,6 +212,12 @@ class ScatterInputWidget(QWidget):
         self.update_slider()
         self.update_plot()
 
+    def update_plot(self):
+        """Update the scatter plot."""
+        self.scatter_canvas.ax.clear()
+        self.scatter_canvas.plot_scatter_plot(self.model)
+        self.scatter_canvas.fig.draw()
+
     ###################
     ### PLOT POINTS ###
     ###################
@@ -248,13 +254,12 @@ class ScatterInputWidget(QWidget):
 
     def load_gates_dataframe(self):
         """Load gates dataframe from csv."""
-        #select a file
         file_path, _ = self._file_dialog()
         if file_path:
             self.model.gates = pd.read_csv(file_path)
-        # check file has same samples
+
         self.model.gates["sample_id"] = self.model.gates["sample_id"].astype(str)
-        # check if dataframe has samples and markers
+
         assert "sample_id" in self.model.gates.columns, "sample_id column not found in gates dataframe."
         assert "marker_id" in self.model.gates.columns, "marker_id column not found in gates dataframe."
         assert "gate_value" in self.model.gates.columns, "gate_value column not found in gates dataframe."
@@ -369,96 +374,62 @@ class ScatterInputWidget(QWidget):
     ###### LOADING DATA ######
     ##########################
 
-    def update_plot(self):
-        """Update the scatter plot."""
-        self.scatter_canvas.ax.clear()
-        self.scatter_canvas.plot_scatter_plot(self.model)
-        self.scatter_canvas.fig.draw()
+    def _read_marker_image(self):
+        """Read the marker image for the selected marker."""
+        image_path = self.model.sample_image_mapping[self.model.active_sample]
+        self._image = imread(image_path)
 
-    def _load_images_and_scatter_plot(self):
-        """Load images and scatter plot."""
-        self._clear_layers(clear_all=True)
-        self._read_data(self.model.active_sample)
-        self._load_layers(self.model.markers_image_indices[self.model.active_marker])
-        self.update_plot()
-        self.update_slider()
-
-    def _read_data(self, sample: str | None) -> None:
-        """Read the image and mask data for the selected sample."""
-        logger.info(f"Reading data for sample {sample}.")
-        if sample is not None:
-            logger.debug(f"Reading image from {self.model.sample_image_mapping[sample]}.")
-            image_path = self.model.sample_image_mapping[sample]
-            logger.debug(f"Reading mask from {self.model.sample_mask_mapping[sample]}.")
-            mask_path = self.model.sample_mask_mapping[sample]
-            self._image = imread(image_path)
-            self._mask = imread(mask_path)
+    def _read_mask_image(self):
+        """Read the mask image for the selected sample."""
+        mask_path = self.model.sample_mask_mapping[self.model.active_sample]
+        self._mask = imread(mask_path)
 
     def load_ref_channel(self):
         """Load the reference channel."""
         for layer in self.viewer.layers:
             if isinstance(layer, Image) and "REF:" in layer.name:
                 self.viewer.layers.remove(layer)
-
         self.viewer.add_image(
             self._image[self.model.markers_image_indices[self.model.active_ref_marker]],
             name="REF:" + self.model.active_ref_marker + "_" + self.model.active_sample,
-            blending="additive",
-            visible=True,
-            colormap="magenta",
-        )
+            blending="additive", visible=True, colormap="magenta")
 
-    def _load_layers(self, marker_index):
-        """Load the image and mask layers into the napari viewer."""
-        self.load_ref_channel()
-        self.viewer.add_labels(
-            self._mask,
-            name="mask_" + self.model.active_sample,
-            visible=False, opacity=0.4
-        )
-        self.viewer.add_image(
-            self._image[marker_index],
-            name=self.model.active_marker + "_" + self.model.active_sample,
-            blending="additive",
-            colormap="green"
-        )
+    def _load_labels(self):
+        """Load the labels into the napari viewer."""
+        self.viewer.add_labels(self._mask, name="mask_" + self.model.active_sample, visible=False, opacity=0.4)
+
+    def _load_image(self):
+        """Load the image into the napari viewer."""
+        marker_index = self.model.markers_image_indices[self.model.active_marker]
+        self.viewer.add_image(self._image[marker_index], name=self.model.active_marker + "_" + self.model.active_sample, blending="additive", colormap="green")
 
     def _on_sample_changed(self):
-        """Set active sample and update the scatter plot."""
+        """Set active sample, load mask,image, and ref."""
         self.model.active_sample = self.sample_selection_dropdown.currentText()
+        self._clear_layers()
+        self._read_marker_image()
+        self._read_mask_image()
+        self.load_ref_channel()
+        self._load_labels()
+        self._load_image()
+        self.update_plot()
+        self.update_slider()
+
     def _on_marker_changed(self):
-        """Set active marker and update the scatter plot."""
+        """Set active marker, load only new marker image."""
         self.model.active_marker = self.marker_selection_dropdown.currentText()
+        for layer in self.viewer.layers:
+            if isinstance(layer, Image) and "REF:" not in layer.name:
+                self.viewer.layers.remove(layer)
+        self._read_marker_image()
+        self._load_image()
+        self.update_plot()
+        self.update_slider()
 
-    def _clear_layers(self, clear_all: bool) -> None:
+    def _clear_layers(self) -> None:
         """Remove all layers upon changing sample."""
-        if clear_all is True:
-            self.viewer.layers.select_all()
-            self.viewer.layers.remove_selected()
-        else:
-            for layer in self.viewer.layers:
-                if isinstance(layer, Image):
-                    self.viewer.layers.remove(layer)
-
-    # def _reinitiate_marker_selection_dropdown(self) -> None:
-    #     """Reiniatiate the marker selection dropdown after sample has changed."""
-    #     # This is preemptively added for clearing visual completed feedback once implemented.
-    #     # We also block the outgoing signal in order not to update the layer when there is no current active marker.
-    #     self.marker_selection_dropdown.blockSignals(True)
-    #     self.marker_selection_dropdown.clear()
-    #     self.marker_selection_dropdown.addItems(self.model.markers)
-    #     self.marker_selection_dropdown.blockSignals(False)
-
-    def _set_samples_dropdown(self) -> None:
-        """Set the items for the samples dropdown QComboBox."""
-        if (region_props := self.model.regionprops_df) is not None:
-            self.model.samples = list(region_props["sample_id"].cat.categories)
-
-            # New directory loaded so we reload the dropdown items
-            self.sample_selection_dropdown.clear()
-            if len(self.model.samples) > 0:
-                self.sample_selection_dropdown.addItems([None])
-                self.sample_selection_dropdown.addItems(self.model.samples)
+        self.viewer.layers.select_all()
+        self.viewer.layers.remove_selected()
 
     def _on_y_axis_changed(self):
         """Set active y-axis and update the scatter plot."""
@@ -488,7 +459,6 @@ class ScatterInputWidget(QWidget):
     def model(self) -> DataModel:
         """The dataclass model that stores information required for cell_gating."""
         return self._model
-
     @model.setter
     def model(self, model: DataModel) -> None:
         self._model = model
@@ -497,7 +467,6 @@ class ScatterInputWidget(QWidget):
     def viewer(self) -> Viewer:
         """The napari Viewer."""
         return self._viewer
-
     @viewer.setter
     def viewer(self, viewer: Viewer) -> None:
         self._viewer = viewer
@@ -506,7 +475,6 @@ class PlotCanvas():
     """The canvas class for the gating scatter plot."""
 
     def __init__(self, model: DataModel):
-
         self.model = DataModel() if model is None else model
         self.fig = FigureCanvas(Figure())
         self.fig.figure.subplots_adjust(left=0.1, bottom=0.1)
