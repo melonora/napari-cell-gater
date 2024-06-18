@@ -105,8 +105,7 @@ class ScatterInputWidget(QWidget):
         # manual input gate
         manual_input_gate_label = QLabel("Manual gate input:")
         self.manual_gate_input_text = QLineEdit()
-        self.manual_gate_input_text.setPlaceholderText("Enter gate value")
-
+        self.manual_gate_input_text.setPlaceholderText("Enter gate value (linear scale)")
         self.manual_gate_input_QPushButton = QPushButton("Set gate manually")
         self.manual_gate_input_QPushButton.clicked.connect(self.manual_gate_input)
 
@@ -263,8 +262,8 @@ class ScatterInputWidget(QWidget):
         logger.debug(f"self.model.markers: {set(self.model.markers)}")
         logger.debug(f"self.model.gates.marker_id.unique(): {set(self.model.gates.marker_id.unique())}")
 
-        assert set(self.model.gates["sample_id"].unique()) == set(self.model.regionprops_df["sample_id"].unique()), "Samples in gates dataframe do not match samples loaded."
-        assert set(self.model.gates["marker_id"].unique()) == set(self.model.markers), "Markers in gates dataframe do not match markers loaded."
+        assert set(self.model.gates["sample_id"].unique()) == set(self.model.regionprops_df["sample_id"].unique()), "Samples do not match, please check your samples."
+        assert set(self.model.gates["marker_id"].unique()) == set(self.model.markers), "Markers don't match, you must pick the same lowerbound and upperbound markers."
         self.csv_path = file_path
         logger.debug(f"Gates dataframe from {file_path} loaded and checked.")
         napari_notification(f"Gates dataframe loaded from: {file_path}")

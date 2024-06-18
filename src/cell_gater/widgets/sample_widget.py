@@ -48,22 +48,23 @@ class SampleWidget(QWidget):
         self.setLayout(QGridLayout())
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
+        # object, int row, int column, int rowSpan = 1, int columnSpan = 1
         load_label = QLabel("Load data:")
-        self.layout().addWidget(load_label, 0, 0)
+        self.layout().addWidget(load_label, 0, 0, 1, 1)
         # Open sample directory dialog
         self.load_samples_button = QPushButton("Load quantifications dir")
         self.load_samples_button.clicked.connect(self._open_sample_dialog)
-        self.layout().addWidget(self.load_samples_button, 0, 1)
+        self.layout().addWidget(self.load_samples_button, 0, 1, 1, 1)
 
         # Open image directory dialog
         self.load_image_dir_button = QPushButton("Load image dir")
         self.load_image_dir_button.clicked.connect(self._open_image_dir_dialog)
-        self.layout().addWidget(self.load_image_dir_button, 0, 2)
+        self.layout().addWidget(self.load_image_dir_button, 0, 2, 1, 1)
 
         # Open mask directory dialog
         self.load_mask_dir_button = QPushButton("Load mask dir")
         self.load_mask_dir_button.clicked.connect(self._open_mask_dir_dialog)
-        self.layout().addWidget(self.load_mask_dir_button, 0, 3)
+        self.layout().addWidget(self.load_mask_dir_button, 0, 3, 1, 1)
 
         # The lower bound marker column dropdown
         lower_col = QLabel("Select lowerbound marker column:")
@@ -85,13 +86,10 @@ class SampleWidget(QWidget):
 
         # Filter field for user to pass on strings to filter markers out.
         filter_label = QLabel("Remove markers with prefix (default: DNA,DAPI)")
-        self.filter_field = QLineEdit(
-            "DNA, DAPI",
-            placeholderText="Prefixes separated by commas.",
-        )
+        self.filter_field = QLineEdit("DNA, DAPI", placeholderText="Prefixes separated by commas.")
         self.filter_field.editingFinished.connect(self._update_filter)
-        self.layout().addWidget(filter_label, 3, 0, 1, 1)
-        self.layout().addWidget(self.filter_field, 3, 1, 1, 1)
+        self.layout().addWidget(filter_label, 3, 0, 1, 2)
+        self.layout().addWidget(self.filter_field, 3, 2, 1, 2)
 
         # Button to start validating all the input
         self.validate_button = QPushButton("Validate input")
