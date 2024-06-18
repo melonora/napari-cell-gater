@@ -53,15 +53,10 @@ class ScatterInputWidget(QWidget):
         self._model = model
         self._viewer = viewer
 
-        logger.debug("ScatterInputWidget initialized")
-        logger.debug(f"Model regionprops_df shape: {self.model.regionprops_df.shape}")
-
-        # Reason for setting current sample here as well is, so we can check whether we have to load a new mask.
         self._current_sample = None
         self._image = None
         self._mask = None
 
-        # Dropdown of samples once directory is loaded
         selection_label = QLabel("Select sample:")
         self.sample_selection_dropdown = QComboBox()
         self.sample_selection_dropdown.addItems(sorted(self.model.samples, key=self.natural_sort_key) )
@@ -72,61 +67,52 @@ class ScatterInputWidget(QWidget):
         self.marker_selection_dropdown.addItems(self.model.markers)
         self.marker_selection_dropdown.currentTextChanged.connect(self._on_marker_changed)
 
-        # apply_button = QPushButton("Load Sample and Marker")
-        # apply_button.clicked.connect(self._load_images_and_scatter_plot)
-
         choose_y_axis_label = QLabel("Choose Y-axis")
         self.choose_y_axis_dropdown = QComboBox()
         self.choose_y_axis_dropdown.addItems(self.model.regionprops_df.columns)
         self.choose_y_axis_dropdown.setCurrentText("Area")
         self.choose_y_axis_dropdown.currentTextChanged.connect(self._on_y_axis_changed)
 
-        # Reference channel
         ref_channel = QLabel("Select reference channel")
         self.ref_channel_dropdown = QComboBox()
         self.ref_channel_dropdown.addItems(self.model.markers_image_indices.keys())
         self.ref_channel_dropdown.currentTextChanged.connect(self.update_ref_channel)
 
-        # logarithmic scale dropdown
         log_label = QLabel("Logarithmic scale")
         self.log_scale_dropdown = QComboBox()
         self.log_scale_dropdown.addItems(["No", "Yes"])
         self.log_scale_dropdown.currentTextChanged.connect(self.update_log_scale)
 
-        # plot type dropdown
         plot_type_label = QLabel("Plot type")
         self.plot_type_dropdown = QComboBox()
         self.plot_type_dropdown.addItems(["Scatter", "Hexbin"])
         self.plot_type_dropdown.currentTextChanged.connect(self.update_plot_type)
 
-        # manual input gate
         manual_input_gate_label = QLabel("Manual gate input:")
         self.manual_gate_input_text = QLineEdit()
         self.manual_gate_input_text.setPlaceholderText("Gate value (linear scale)")
         self.manual_gate_input_QPushButton = QPushButton("Set gate manually")
         self.manual_gate_input_QPushButton.clicked.connect(self.manual_gate_input)
 
-        # object, int row, int column, int rowSpan = 1, int columnSpan = 1
+        # self.layout().addWidget(object, int row, int column, int rowSpan = 1, int columnSpan = 1)
         self.layout().addWidget(selection_label, 0, 0)
         self.layout().addWidget(self.sample_selection_dropdown, 0, 1)
         self.layout().addWidget(marker_label, 0, 2)
         self.layout().addWidget(self.marker_selection_dropdown, 0, 3)
-        # self.layout().addWidget(apply_button, 1, 0, 1, 4)
-        self.layout().addWidget(choose_y_axis_label, 2, 0, 1, 1)
-        self.layout().addWidget(self.choose_y_axis_dropdown, 2, 1, 1, 1)
-        self.layout().addWidget(ref_channel, 2, 2, 1, 1)
-        self.layout().addWidget(self.ref_channel_dropdown, 2, 3, 1, 1)
-        self.layout().addWidget(log_label, 3, 0, 1, 1)
-        self.layout().addWidget(self.log_scale_dropdown, 3, 1, 1, 1)
-        self.layout().addWidget(plot_type_label, 3, 2, 1, 1)
-        self.layout().addWidget(self.plot_type_dropdown, 3, 3, 1, 1)
+        self.layout().addWidget(choose_y_axis_label, 1, 0, 1, 1)
+        self.layout().addWidget(self.choose_y_axis_dropdown, 1, 1, 1, 1)
+        self.layout().addWidget(ref_channel, 1, 2, 1, 1)
+        self.layout().addWidget(self.ref_channel_dropdown, 1, 3, 1, 1)
+        self.layout().addWidget(log_label, 2, 0, 1, 1)
+        self.layout().addWidget(self.log_scale_dropdown, 2, 1, 1, 1)
+        self.layout().addWidget(plot_type_label, 2, 2, 1, 1)
+        self.layout().addWidget(self.plot_type_dropdown, 2, 3, 1, 1)
 
         # we have to do this because initially the dropdowns did not change texts yet so these variables are still None.
         self.model.active_sample = self.sample_selection_dropdown.currentText()
         self.model.active_marker = self.marker_selection_dropdown.currentText()
         self.model.active_y_axis = self.choose_y_axis_dropdown.currentText()
         self.model.active_ref_marker = self.ref_channel_dropdown.currentText()
-
         self._read_marker_image()
         self._read_mask_image()
         self._load_labels()
@@ -135,29 +121,27 @@ class ScatterInputWidget(QWidget):
 
         # scatter plot
         self.scatter_canvas = PlotCanvas(self.model)
-        self.layout().addWidget(self.scatter_canvas.fig, 4, 0, 1, 4)
+        self.layout().addWidget(self.scatter_canvas.fig, 3, 0, 1, 4)
 
         # slider
         self.slider_figure = Figure(figsize=(5, 1))
         self.slider_canvas = FigureCanvas(self.slider_figure)
         self.slider_ax = self.slider_figure.add_subplot(111)
         self.update_slider()
-        self.layout().addWidget(self.slider_canvas, 5, 0, 1, 4)
+        self.layout().addWidget(self.slider_canvas, 4, 0, 1, 4)
 
         #manual input gate
-        self.layout().addWidget(manual_input_gate_label, 6, 0, 1, 1)
-        self.layout().addWidget(self.manual_gate_input_text, 6, 1, 1, 1)
-        self.layout().addWidget(self.manual_gate_input_QPushButton, 6, 2, 1, 2)
+        self.layout().addWidget(manual_input_gate_label, 5, 0, 1, 1)
+        self.layout().addWidget(self.manual_gate_input_text, 5, 1, 1, 1)
+        self.layout().addWidget(self.manual_gate_input_QPushButton, 5, 2, 1, 2)
 
         # plot points button
         plot_points_button = QPushButton("Plot Points")
         plot_points_button.clicked.connect(self.plot_points)
-        self.layout().addWidget(plot_points_button, 7,0,1,1)
+        self.layout().addWidget(plot_points_button, 6,0,1,1)
 
         # Initialize gates dataframe
-        sample_marker_combinations = list(product(
-            self.model.regionprops_df["sample_id"].unique(),
-            self.model.markers))
+        sample_marker_combinations = list(product(self.model.regionprops_df["sample_id"].unique(), self.model.markers))
         self.model.gates = pd.DataFrame(sample_marker_combinations, columns=["sample_id", "marker_id"])
         self.model.gates["gate_value"] = float(0)
 
@@ -167,11 +151,10 @@ class ScatterInputWidget(QWidget):
         # gate buttons
         save_gate_button = QPushButton("Save Gate")
         save_gate_button.clicked.connect(self.save_gate)
-        self.layout().addWidget(save_gate_button, 7, 1, 1, 1)
-
+        self.layout().addWidget(save_gate_button, 6, 1, 1, 1)
         load_gates_button = QPushButton("Load existing gates")
         load_gates_button.clicked.connect(self.load_gates_dataframe)
-        self.layout().addWidget(load_gates_button, 7, 2, 1, 2)
+        self.layout().addWidget(load_gates_button, 6, 2, 1, 2)
 
     #################################################################
     ########################### FUNCTIONS ###########################
@@ -224,9 +207,6 @@ class ScatterInputWidget(QWidget):
 
     def plot_points(self):
         """Plot positive cells in Napari."""
-        assert self.model.active_sample is not None
-        assert self.model.active_marker is not None
-
         df = self.model.regionprops_df
         df = df[df["sample_id"] == self.model.active_sample]
 
@@ -471,7 +451,7 @@ class ScatterInputWidget(QWidget):
     def viewer(self, viewer: Viewer) -> None:
         self._viewer = viewer
 
-class PlotCanvas():
+class PlotCanvas:
     """The canvas class for the gating scatter plot."""
 
     def __init__(self, model: DataModel):
@@ -480,7 +460,6 @@ class PlotCanvas():
         self.fig.figure.subplots_adjust(left=0.1, bottom=0.1)
         self.ax = self.fig.figure.subplots()
         self.ax.set_title("Scatter plot")
-        #run function to plot scatter plot
         self.plot_scatter_plot(self.model)
 
     @property
@@ -492,11 +471,10 @@ class PlotCanvas():
     def model(self, model: DataModel) -> None:
         self._model = model
 
-    def plot_scatter_plot(self, model: DataModel) -> None:
+    def plot_scatter_plot(self):
         """Plot the scatter plot."""
         df = self.model.regionprops_df
         df = df[df["sample_id"] == self.model.active_sample]
-        logger.debug(f"Plotting for {self.model.active_sample} and {self.model.active_marker}, df.shape {df.shape}.")
 
         x_data = df[self.model.active_marker]
         y_data = df[self.model.active_y_axis]
@@ -507,24 +485,14 @@ class PlotCanvas():
             self.ax.set_yscale("log")
 
         if self.model.plot_type == "scatter":
-            self.ax.scatter(
-                x=x_data, y=y_data,
-                color="steelblue",
-                ec="white",
-                lw=0.1, alpha=1.0,
-                s=80000 / int(df.shape[0]),
-            )
+            self.ax.scatter(x=x_data, y=y_data,
+                color="steelblue", ec="white",
+                lw=0.1, alpha=1.0, s=80000 / int(df.shape[0]))
         elif self.model.plot_type == "hexbin" and self.model.log_scale is True:
-            self.ax.hexbin(
-                x=x_data, y=y_data,
-                gridsize=50, cmap="viridis",
-                bins="log",xscale="log", yscale="log",
-            )
+            self.ax.hexbin(x=x_data, y=y_data, gridsize=50, cmap="viridis",
+                bins="log",xscale="log", yscale="log")
         elif self.model.plot_type == "hexbin" and self.model.log_scale is False:
-            self.ax.hexbin(
-                x=x_data, y=y_data,
-                gridsize=50, cmap="viridis",
-            )
+            self.ax.hexbin(x=x_data, y=y_data, gridsize=50, cmap="viridis")
 
         # Set x-axis limits
         self.ax.set_xlim(df[self.model.active_marker].min(), df[self.model.active_marker].max())
