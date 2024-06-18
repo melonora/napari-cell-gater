@@ -3,6 +3,7 @@ from __future__ import annotations
 import sys
 from itertools import product
 
+
 import numpy as np
 import pandas as pd
 from dask_image.imread import imread
@@ -36,9 +37,10 @@ logger.add(sys.stdout, format="<green>{time:HH:mm:ss.SS}</green> | <level>{level
 
 #Good to have features
 
-#Ideas to maybe implement
-#TODO dynamic plotting of points on top of created polygons
-#TODO save plots as images for QC, perhaps when saving gates run plotting function to go through all samples and markers and save plots
+# Ideas to maybe implement
+# TODO dynamic plotting of points on top of created polygons
+# TODO save plots as images for QC, perhaps when saving gates run plotting function to go through all samples and markers and save plots
+
 
 class ScatterInputWidget(QWidget):
     """Widget for a scatter plot with markers on the x axis and any dtype column on the y axis."""
@@ -58,7 +60,7 @@ class ScatterInputWidget(QWidget):
 
         selection_label = QLabel("Select sample:")
         self.sample_selection_dropdown = QComboBox()
-        self.sample_selection_dropdown.addItems(sorted(self.model.samples, key=self.natural_sort_key) )
+        self.sample_selection_dropdown.addItems(sorted(self.model.samples, key=self.natural_sort_key))
         self.sample_selection_dropdown.currentTextChanged.connect(self._on_sample_changed)
 
         marker_label = QLabel("Marker label:")
@@ -200,10 +202,13 @@ class ScatterInputWidget(QWidget):
         self.scatter_canvas.plot_scatter_plot(self.model)
         self.scatter_canvas.fig.draw()
 
+
     ###################
     ### PLOT POINTS ###
     ###################
 
+    # TODO dynamic plotting of points on top of created polygons
+    
     def plot_points(self):
         """Plot positive cells in Napari."""
         df = self.model.regionprops_df
@@ -432,6 +437,7 @@ class ScatterInputWidget(QWidget):
     def natural_sort_key(self, s):
         """Key function for natural sorting."""
         import re
+
         return [int(text) if text.isdigit() else text.lower() for text in re.split(r"(\d+)", s)]
 
     @property

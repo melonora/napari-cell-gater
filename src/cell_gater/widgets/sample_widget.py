@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from pathlib import Path
 
 from napari import Viewer
@@ -125,11 +127,12 @@ class SampleWidget(QWidget):
             QFileDialog.Options(),
         )
 
-    def _open_sample_dialog(self):
+    def _open_sample_dialog(self, folder: str | None = None):
         """Open directory file dialog for regionprop directory."""
-        folder = self._dir_dialog()
+        if not folder:
+            folder = self._dir_dialog()
 
-        if folder not in {"", None}:
+        if isinstance(folder, str) and folder != "":
             self._assign_regionprops_to_model(folder)
             update_open_history(folder)
 

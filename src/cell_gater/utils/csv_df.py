@@ -27,13 +27,13 @@ def stack_csv_files(csv_dir: Path) -> pd.DataFrame | None:
     napari_notification(f"Loaded {len(csv_files)} regionprops csvs.")
     df = pd.DataFrame()
     for file in csv_files:
-        if not file.name.startswith('.'):
+        if not file.name.startswith("."):
             df_file = pd.read_csv(file)
             df_file["sample_id"] = file.stem
             df = pd.concat([df, df_file], ignore_index=True)
             df["sample_id"] = df.sample_id.astype("category")
         else:
-            print(f"Skipping file {file.name} as it is a hidden file.")
+            napari_notification(f"Skipping file {file.name} as it is a hidden file.")
 
     return df
 
