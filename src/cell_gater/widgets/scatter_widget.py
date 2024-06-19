@@ -199,7 +199,7 @@ class ScatterInputWidget(QWidget):
     def update_plot(self):
         """Update the scatter plot."""
         self.scatter_canvas.ax.clear()
-        self.scatter_canvas.plot_scatter_plot(self.model)
+        self.scatter_canvas.plot_scatter_plot()
         self.scatter_canvas.fig.draw()
 
 
@@ -465,7 +465,7 @@ class PlotCanvas:
         self.fig.figure.subplots_adjust(left=0.1, bottom=0.1)
         self.ax = self.fig.figure.subplots()
         self.ax.set_title("Scatter plot")
-        self.plot_scatter_plot(self.model)
+        self.plot_scatter_plot()
 
     @property
     def model(self) -> DataModel:
