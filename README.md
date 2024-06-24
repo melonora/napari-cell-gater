@@ -9,63 +9,46 @@
 
 A plugin to perform cell marker gating for multiplexed immunofluorescent imaging
 
+![Screenshot 2024-06-17 at 19 34 17](https://github.com/melonora/napari-cell-gater/assets/30318135/f469c380-ef53-42d6-a136-ebcae723e987)
+
 ----------------------------------
-
-This [napari] plugin was generated with [Cookiecutter] using [@napari]'s [cookiecutter-napari-plugin] template.
-
-<!--
-Don't miss the full getting started guide to set up your new package:
-https://github.com/napari/cookiecutter-napari-plugin#getting-started
-
-and review the napari docs for plugin developers:
-https://napari.org/stable/plugins/index.html
--->
-
-This plugin is currently under heavy development. If you are interested in contributing, please create a fork. After
-cloning, create an environment and install using `pip install -e .[test]`. Afterwards, please install the `pre-commit`
-hook by running `pre-commit install` in the directory with the `.pre-commit-config.yaml`.
 
 ## Installation
 
+Step 1. 
 Install napari (see https://napari.org/stable/tutorials/fundamentals/installation)
 
-You can install `napari-cell-gater` via [pip]:
-
-    pip install napari-cell-gater
-
-or directly from github via [pip] with:
+Step 2.
+Install `napari-cell-gater` via [pip]:
 
     pip install git+https://github.com/melonora/napari-cell-gater.git@stable
 
-## Visual Workflow 
-
-![Image Alt Text](/docs/VisualWorkflow_highres.png)
-
 ## How to use
-Writing this helps me organize my thoughts on what to do next
 
 1. Users will select the necesary directories: images, masks, and quantification directories.
 
-Assumptions:
-files inside these directories are named according to the samples name.
-For example, the image for sample 1, should be named "1.ome.tif" or "1.tif"; the mask file should be named "1.tif"; and the quantification file "1.csv"
+    Assumptions for inputs:  
+        1.1 Files inside these directories are named according to the samples names.   
+        1.2 The image for sample 1, should be "1.ome.tif" or "1.tif"; the mask file "1.tif"; and the quantification file "1.csv".  
+        1.3 Each set of files should all be inside each of the three folders.  
+        1.4 Any extra files in those folders can make code fail.  
 
-2. Select the lowerbound and upperbound channels to gate.
+3. Select the lowerbound and upperbound channels to gate. These are all the columns from the quantification csv file that you want to threshold. You must pick the same channels if you plan to save and reload the gates.  
 
-3. Select a sample, and a marker from dropdown menus. Then click "Load Sample and Marker", 3 layers will load:   
+4. Select a sample, and a marker from dropdown menus. 3 layers will load:   
         (a.) the reference channel (default: first channel, changeable by dropdown menu)   
         (b.) the segmentation mask (for large images this might be a problem)  
         (c.) the channel_to_be_gated  
 A scatter plot (default: x-axis=channel_to_be_gated intensity, y-axis=Area) (y-axis can be changed by dropdown)      
-Underneath the scatterplot a slider will appear, the position of the slider will show up as a vertical line in the scatter plot  
+Underneath the scatterplot a slider will appear, the position of the slider will show up as a vertical line in the scatter plot.
+The scatter plot can also be changed to a hexbin plot, which really helps with dense clusters of cells.
+Plotting the data in log10 space is also possible by dropdown. Most of the times it helps. Gates would still be saved in linear space.
 
-4. Adjust the contrast with the Napari layer menu (top left)
-5. Drag the slider to what they think is correct
-6. Click "Plot Points" to plot points on top of positive cells.
-7. Repeat steps 5 and 6 until satisfied.
-8. Click "Save Gate" to save the gate for the current marker and sample. Go to step 3 and repeat.
-9. Save the current gate values as a csv by clicking "Save Gates DataFrame".
-10. This csv file can also be loaded midway through the gating process.  
+6. Adjust the contrast with the Napari layer menu (top left)
+7. Drag the slider to what they think is correct
+8. Click "Plot Points" to plot points on top of positive cells.
+9. Repeat steps 7 and 8 until satisfied.
+10. Click "Save Gate" to save the gate for the current marker and sample. Go to step 4 and repeat.
 
 ## Contributing
 
