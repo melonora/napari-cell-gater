@@ -21,7 +21,7 @@ Install napari (see https://napari.org/stable/tutorials/fundamentals/installatio
 Step 2.
 Install `napari-cell-gater` via [pip]:
 
-    pip install git+https://github.com/melonora/napari-cell-gater.git@stable
+    pip install git+https://github.com/melonora/napari-cell-gater.git
 
 ## How to use
 
