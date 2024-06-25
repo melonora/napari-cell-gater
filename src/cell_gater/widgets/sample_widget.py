@@ -27,7 +27,7 @@ from cell_gater.widgets.scatter_widget import ScatterInputWidget
 class SampleWidget(QWidget):
     """Sample widget for loading required data."""
 
-    def __init__(self, viewer: Viewer, model: DataModel | None = None) -> None:
+    def __init__(self, napari_viewer: Viewer, model: DataModel | None = None) -> None:
         """
         Create the QWidget visuals.
 
@@ -45,7 +45,7 @@ class SampleWidget(QWidget):
         """
         super().__init__()
         self._scatter_widget = None
-        self._viewer = viewer
+        self._viewer = napari_viewer
         self._model = DataModel() if model is None else model
         self.setLayout(QGridLayout())
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
