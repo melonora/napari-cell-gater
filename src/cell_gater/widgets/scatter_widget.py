@@ -500,7 +500,6 @@ class PlotCanvas:
             self.ax.hexbin(x=x_data, y=y_data, gridsize=50, cmap="viridis")
 
         # Set x-axis limits
-        # self.ax.set_xlim(df[self.model.active_marker].min(), df[self.model.active_marker].max())
         self.ax.set_xlim(x_data.min(), x_data.max())
         self.ax.set_ylabel(self.model.active_y_axis)
         self.ax.set_xlabel(f"{self.model.active_marker}")
