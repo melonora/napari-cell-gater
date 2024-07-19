@@ -142,7 +142,7 @@ class ScatterInputWidget(QWidget):
         self.layout().addWidget(plot_points_button, 6,0,1,1)
 
         # Initialize gates dataframe
-        sample_marker_combinations = list(product(self.model.regionprops_df["sample_id"].unique(), self.model.markers))
+        sample_marker_combinations = list(product(self.model.regionprops_df["sample_id"].unique(), self.model.markers_image_indices.keys()))
         self.model.gates = pd.DataFrame(sample_marker_combinations, columns=["sample_id", "marker_id"])
         self.model.gates["gate_value"] = float(0)
 
@@ -251,8 +251,8 @@ class ScatterInputWidget(QWidget):
         logger.debug(f"self.model.markers: {set(self.model.markers)}")
         logger.debug(f"self.model.gates.marker_id.unique(): {set(self.model.gates.marker_id.unique())}")
 
-        assert set(self.model.gates["sample_id"].unique()) == set(self.model.regionprops_df["sample_id"].unique()), "Samples do not match, please check your samples."
-        assert set(self.model.gates["marker_id"].unique()) == set(self.model.markers), "Markers don't match, you must pick the same lowerbound and upperbound markers."
+        assert set(self.model.gates["sample_id"].unique()) == set(self.model.regionprops_df["sample_id"].unique()), "Samples do not match."
+        assert set(self.model.gates["marker_id"].unique()) == set(self.model.markers), "Markers don't match, pick the same quantification files."
         self.csv_path = file_path
         logger.debug(f"Gates dataframe from {file_path} loaded and checked.")
         napari_notification(f"Gates dataframe loaded from: {file_path}")
@@ -500,9 +500,10 @@ class PlotCanvas:
             self.ax.hexbin(x=x_data, y=y_data, gridsize=50, cmap="viridis")
 
         # Set x-axis limits
-        self.ax.set_xlim(df[self.model.active_marker].min(), df[self.model.active_marker].max())
+        # self.ax.set_xlim(df[self.model.active_marker].min(), df[self.model.active_marker].max())
+        self.ax.set_xlim(x_data.min(), x_data.max())
         self.ax.set_ylabel(self.model.active_y_axis)
-        self.ax.set_xlabel(f"{self.model.active_marker} intensity")
+        self.ax.set_xlabel(f"{self.model.active_marker}")
 
         if self.model.current_gate > 0.0:
             self.ax.axvline(x=self.model.current_gate, color="red", linewidth=1.0, linestyle="--")

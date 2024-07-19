@@ -1,0 +1,69 @@
+15:33:29.94 | DEBUG | Gates dataframe from  loaded and checked.
+INFO: Gates dataframe loaded from:
+INFO: Removed 4 out of list of 24.
+---------------------------------------------------------------------------
+IndexError                                Traceback (most recent call last)
+File ~/Jose_BI/napari-cell-gater/src/cell_gater/widgets/sample_widget.py:271, in SampleWidget._validate(self=<cell_gater.widgets.sample_widget.SampleWidget object>)
+    267             del self.model.markers[marker]
+    269 napari_notification(f"Removed {n_markers - len(self.model.markers)} out of list of {n_markers}.")
+--> 271 self._scatter_widget = ScatterInputWidget(self.model, self.viewer)
+        self._scatter_widget = <cell_gater.widgets.scatter_widget.ScatterInputWidget object at 0x28c368670>
+        self = <cell_gater.widgets.sample_widget.SampleWidget object at 0x16982f490>
+        ScatterInputWidget = <class 'cell_gater.widgets.scatter_widget.ScatterInputWidget'>
+    272 self.viewer.window.add_dock_widget(
+    273     self._scatter_widget, name="cell_gater", area="right", menu=self._viewer.window.window_menu, tabify=True
+    274 )
+    276 self.model.validated = True
+
+File ~/Jose_BI/napari-cell-gater/src/cell_gater/widgets/scatter_widget.py:120, in ScatterInputWidget.__init__(self=<cell_gater.widgets.scatter_widget.ScatterInputWidget object>, model=DataModel(events=<napari.utils.events.event.Emit...  0.0
+
+[100 rows x 3 columns], _current_gate=0.0), viewer=Viewer(camera=Camera(center=(0.0, 4159.0, 4159.0...ouse_drag_gen={}, _mouse_wheel_gen={}, keymap={}))
+    118 self._read_mask_image()
+    119 self._load_labels()
+--> 120 self._load_image()
+        self = <cell_gater.widgets.scatter_widget.ScatterInputWidget object at 0x12b475f30>
+    121 self.load_ref_channel()
+    123 # scatter plot
+
+File ~/Jose_BI/napari-cell-gater/src/cell_gater/widgets/scatter_widget.py:388, in ScatterInputWidget._load_image(self=<cell_gater.widgets.scatter_widget.ScatterInputWidget object>)
+    386 """Load the image into the napari viewer."""
+    387 marker_index = self.model.markers_image_indices[self.model.active_marker]
+--> 388 self.viewer.add_image(self._image[marker_index], name=self.model.active_marker + "_" + self.model.active_sample, blending="additive", colormap="green")
+        marker_index = 65
+        self._image = dask.array<_map_read_frame, shape=(30, 8319, 8319), dtype=uint16, chunksize=(1, 8319, 8319), chunktype=numpy.ndarray>
+        self = <cell_gater.widgets.scatter_widget.ScatterInputWidget object at 0x12b475f30>
+
+File /opt/homebrew/Caskroom/mambaforge/base/envs/napari/lib/python3.10/site-packages/dask/array/core.py:1979, in Array.__getitem__(self=dask.array<_map_read_frame, shape=(30, 8319, 831...unksize=(1, 8319, 8319), chunktype=numpy.ndarray>, index=(65,))
+   1971     index = (index,)
+   1973 from dask.array.slicing import (
+   1974     normalize_index,
+   1975     slice_with_bool_dask_array,
+   1976     slice_with_int_dask_array,
+   1977 )
+-> 1979 index2 = normalize_index(index, self.shape)
+        index = (65,)
+        self = dask.array<_map_read_frame, shape=(30, 8319, 8319), dtype=uint16, chunksize=(1, 8319, 8319), chunktype=numpy.ndarray>
+   1980 dependencies = {self.name}
+   1981 for i in index2:
+
+File /opt/homebrew/Caskroom/mambaforge/base/envs/napari/lib/python3.10/site-packages/dask/array/slicing.py:922, in normalize_index(idx=(65, slice(None, None, None), slice(None, None, None)), shape=(30, 8319, 8319))
+    920 for axis, (i, d) in enumerate(zip(idx, none_shape)):
+    921     if d is not None:
+--> 922         check_index(axis, i, d)
+        i = 65
+        axis = 0
+        d = 30
+    923 idx = tuple(map(sanitize_index, idx))
+    924 idx = tuple(map(normalize_slice, idx, none_shape))
+
+File /opt/homebrew/Caskroom/mambaforge/base/envs/napari/lib/python3.10/site-packages/dask/array/slicing.py:994, in check_index(axis=0, ind=65, dimension=30)
+    991     return
+    993 elif ind >= dimension or ind < -dimension:
+--> 994     raise IndexError(
+        ind = 65
+        dimension = 30
+        axis = 0
+    995         f"Index {ind} is out of bounds for axis {axis} with size {dimension}"
+    996     )
+
+IndexError: Index 65 is out of bounds for axis 0 with size 30

@@ -23,6 +23,8 @@ from cell_gater.utils.csv_df import stack_csv_files
 from cell_gater.utils.misc import napari_notification
 from cell_gater.widgets.scatter_widget import ScatterInputWidget
 
+import skimage.io
+import numpy
 
 class SampleWidget(QWidget):
     """Sample widget for loading required data."""
@@ -231,9 +233,6 @@ class SampleWidget(QWidget):
             self.model.mask_paths
         ), "Number of images and segmentation masks do not match."
 
-        # TODO what happens when upperbound is before lowerbound?
-        # Should break and give error message
-
         # First check whether there is a difference between the file names without extension and then assign as samples
         image_paths_set = {i.stem if ".ome" not in i.stem else i.stem.rstrip(".ome") for i in self.model.image_paths}
         mask_paths_set = {i.stem if ".ome" not in i.stem else i.stem.rstrip(".ome") for i in self.model.mask_paths}
@@ -242,31 +241,32 @@ class SampleWidget(QWidget):
 
         # This allows to use the dropdowns to directly map to the paths for opening.
         self.model.samples = image_paths_set
-        self.model.sample_image_mapping = {
-            i.stem.rstrip(".ome") if ".ome" in i.stem else i.stem: i for i in self.model.image_paths
-        }
-        self.model.sample_mask_mapping = {
-            i.stem.rstrip(".ome") if ".ome" in i.stem else i.stem: i for i in self.model.mask_paths
-        }
+        self.model.sample_image_mapping = {i.stem.rstrip(".ome") if ".ome" in i.stem else i.stem: i for i in self.model.image_paths}
+        self.model.sample_mask_mapping = {i.stem.rstrip(".ome") if ".ome" in i.stem else i.stem: i for i in self.model.mask_paths}
 
-        # This is to retrieve the correct markers with their index in the images
-        column_ls = list(self.model.regionprops_df.columns)
-        lowerbound_index = column_ls.index(self.model.lower_bound_marker)
-        upperbound_index = column_ls.index(self.model.upper_bound_marker)
-        marker_columns = column_ls[lowerbound_index : upperbound_index + 1]
-        self.model.markers = {marker: i for i, marker in enumerate(marker_columns)}
+        # Selecting the markers of interest, and 
+        columns = list(self.model.regionprops_df.columns)[1:]
+        lowerbound_index = columns.index(self.model.lower_bound_marker)
+        upperbound_index = columns.index(self.model.upper_bound_marker)
+        self.model.markers = columns[lowerbound_index : upperbound_index + 1]
         n_markers = len(self.model.markers)
-        # ASSUMPTION: markers start at index 1 and finish before X_centroid
-        markers = column_ls[1 : column_ls.index("X_centroid") - 1]
-        self.model.markers_image_indices = {marker: i for i, marker in enumerate(markers)}
-
+        # filter DNA and DAPI channels by default
         for filter in self.model.marker_filter.split(","):
-            # Do this because changing length would cause errors when deleting in loop.
             for marker in self.model.markers.copy():
                 if filter.lower() in marker.lower():
-                    del self.model.markers[marker]
-
+                    self.model.markers.remove(marker)
         napari_notification(f"Removed {n_markers - len(self.model.markers)} out of list of {n_markers}.")
+
+        # Find num of channels in image, maybe more efficient way, WSI would take very long
+        image_shape = skimage.io.imread(self.model.image_paths[0]).shape
+        n_channels = image_shape[0]
+
+        # Mapping df columns to image channels
+        self.model.markers_image_indices = {}
+        for metric_round in range(0, len(columns)//n_channels):
+            metric_index = metric_round * n_channels
+            for channel_index in range(1, n_channels+1):
+                self.model.markers_image_indices[columns[int(metric_index) + int(channel_index)-1]] = channel_index-1
 
         self._scatter_widget = ScatterInputWidget(self.model, self.viewer)
         self.viewer.window.add_dock_widget(
