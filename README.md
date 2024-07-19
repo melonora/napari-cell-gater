@@ -47,7 +47,7 @@ Plotting the data in log10 space is also possible by dropdown. Most of the times
 6. Adjust the contrast with the Napari layer menu (top left)
 7. Drag the slider to what they think is correct
 8. Click "Plot Points" to plot points on top of positive cells.
-9. Repeat steps 7 and 8 until satisfied.
+9. Repeat steps 5 and 6 until satisfied.
 10. Click "Save Gate" to save the gate for the current marker and sample. Go to step 4 and repeat.
 
 ## Contributing
