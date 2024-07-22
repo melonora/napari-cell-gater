@@ -174,7 +174,6 @@ class ScatterInputWidget(QWidget):
         elif self.log_scale_dropdown.currentText() == "No":
             self.model.log_scale = False
         logger.debug(f"Log scale set to {self.model.log_scale}.")
-
         self.update_slider()
         self.update_plot()
 
@@ -201,7 +200,8 @@ class ScatterInputWidget(QWidget):
         self.scatter_canvas.ax.clear()
         self.scatter_canvas.plot_scatter_plot()
         self.scatter_canvas.fig.draw()
-        # self.scatter_canvas.update_vertical_line(self.access_gate())
+        if self.access_gate() > 0.0:
+            self.scatter_canvas.fixed_vertical_line()
 
 
     ###################
@@ -209,8 +209,8 @@ class ScatterInputWidget(QWidget):
     ###################
 
     # TODO dynamic plotting of points on top of created polygons
-    
-    def plot_points(self):
+
+    def plot_points(self, ref_gate=False):
         """Plot positive cells in Napari."""
         df = self.model.regionprops_df
         df = df[df["sample_id"] == self.model.active_sample]
@@ -224,14 +224,17 @@ class ScatterInputWidget(QWidget):
         logger.debug(f"marker: {self.model.active_marker}")
         logger.debug(f"current_gate: {self.model.current_gate}")
 
-        self.viewer.add_points(
-            df[df[self.model.active_marker] > self.model.current_gate][["Y_centroid", "X_centroid"]],
-            name=f"Gate: {round(self.model.current_gate)} | {self.model.active_sample}:{self.model.active_marker}",
-            face_color="yellow",
-            edge_color="black",
-            size=12,
-            opacity=0.6,
-        )
+        if ref_gate:
+            ref_gate_value = self.access_gate()
+            self.viewer.add_points(
+                df[df[self.model.active_marker] > ref_gate_value][["Y_centroid", "X_centroid"]],
+                name=f"Gate: {round(ref_gate_value)} | {self.model.active_sample}:{self.model.active_marker}",
+                face_color="yellow", edge_color="black", size=12, opacity=0.6)
+        else:
+            self.viewer.add_points(
+                df[df[self.model.active_marker] > self.model.current_gate][["Y_centroid", "X_centroid"]],
+                name=f"Gate: {round(self.model.current_gate)} | {self.model.active_sample}:{self.model.active_marker}",
+                face_color="yellow", edge_color="black", size=12, opacity=0.6)
 
     ####################################
     ### GATES DATAFRAME INPUT OUTPUT ###
@@ -252,7 +255,9 @@ class ScatterInputWidget(QWidget):
 
         self.csv_path = file_path
         logger.debug(f"Gates dataframe from {file_path} loaded and checked.")
-        # self.scatter_canvas.update_vertical_line(self.access_gate()) #not working
+        logger.debug(f"self.access_gate(): {self.access_gate()}")
+        self.scatter_canvas.fixed_vertical_line()
+        self.plot_points(ref_gate=True)
         napari_notification(f"Gates dataframe loaded from: {file_path}")
 
     def select_save_directory(self):
@@ -295,6 +300,7 @@ class ScatterInputWidget(QWidget):
 
         assert self.access_gate() == self.model.current_gate
         self.save_gates_dataframe()
+        self.scatter_canvas.fixed_vertical_line()
         logger.debug(f"Gate saved: {self.model.current_gate}")
 
     def access_gate(self):
@@ -337,19 +343,15 @@ class ScatterInputWidget(QWidget):
             self.model._current_gate = 10**val
         elif not self.model.log_scale:
             self.model._current_gate = val
-        self.scatter_canvas.update_vertical_line(val) #not working
-        # self.scatter_canvas.fig.draw()
+        self.scatter_canvas.update_vertical_line(val)
 
     def update_slider(self):
         """Update the slider with the min, max, median and step values."""
         logger.debug("Updating slider.")
         min, max, init, step = self.get_min_max_median_step()
-        # if self.access_gate() not in [0.0, None, np.nan]:
-        #     init = np.log10(self.access_gate()) if self.model.log_scale else self.access_gate()
         self.slider_ax.clear()
         self.slider = Slider(self.slider_ax, "Gate", min, max, valinit=init, valstep=step, color="black")
         self.slider.on_changed(self.slider_changed)
-        # self.scatter_canvas.update_vertical_line(self.access_gate())
         self.slider_canvas.draw()
 
     ##########################
@@ -396,6 +398,9 @@ class ScatterInputWidget(QWidget):
         self._load_image()
         self.update_plot()
         self.update_slider()
+        if self.access_gate() > 0.0:
+            self.scatter_canvas.fixed_vertical_line()
+            self.plot_points(ref_gate=True)
 
     def _on_marker_changed(self):
         """Set active marker, load only new marker image."""
@@ -409,6 +414,9 @@ class ScatterInputWidget(QWidget):
         self._load_image()
         self.update_plot()
         self.update_slider()
+        if self.access_gate() > 0.0:
+            self.scatter_canvas.fixed_vertical_line()
+            self.plot_points(ref_gate=True)
 
     def _clear_layers(self) -> None:
         """Remove all layers upon changing sample."""
@@ -466,13 +474,6 @@ class PlotCanvas:
         self.ax.set_title("Scatter plot")
         self.plot_scatter_plot()
 
-    def update_vertical_line(self, x_position):
-        """Update the position of the vertical line."""
-        if self.model.log_scale:
-            x_position = 10**(x_position)
-        self.ax.lines[0].set_xdata(x=[x_position])
-        self.fig.draw()
-
     @property
     def model(self) -> DataModel:
         """The dataclass model that stores information required for cell_gating."""
@@ -514,3 +515,41 @@ class PlotCanvas:
 
         # Initate vertical line
         self.ax.axvline(x=1.0, color="red", linewidth=1.0, linestyle="--")
+
+    def update_vertical_line(self, x_position):
+        """Update the position of the vertical line."""
+        logger.debug(f"Updating vertical line to {x_position}, self.ax.lines: {self.ax.lines}")
+        x_position = 10**(x_position) if self.model.log_scale else x_position
+        self.ax.lines[0].set_xdata(x=[x_position])
+        self.fig.draw()
+
+    def access_gate(self):
+        """Access the current gate value."""
+        assert self.model.active_sample is not None
+        assert self.model.active_marker is not None
+        gate_value = self.model.gates.loc[
+            (self.model.gates["sample_id"] == self.model.active_sample) &
+            (self.model.gates["marker_id"] == self.model.active_marker),
+            "gate_value"].values[0]
+        assert isinstance(gate_value, float)
+        return gate_value
+
+    def fixed_vertical_line(self):
+        """Draw a vertical fixed line on the scatter plot."""
+        if self.access_gate() > 0.0:
+
+            if len(self.ax.lines) == 1:
+                self.ax.axvline(x=self.access_gate(), color="blue", linewidth=1.0, linestyle="-.")
+            if len(self.ax.lines) > 1:
+                self.ax.lines[1].remove()
+                self.ax.axvline(x=self.access_gate(), color="blue", linewidth=1.0, linestyle="-.")
+
+            df = self.model.regionprops_df
+            df = df[df["sample_id"] == self.model.active_sample]
+            y_data = df[self.model.active_y_axis]
+            if len(self.ax.texts) > 0:
+                self.ax.texts[0].set_position((self.access_gate(), y_data.max()))
+                self.ax.texts[0].set_text(f" Gate:{round(self.access_gate(),3)}")
+            else:
+                self.ax.text(x=self.access_gate(), y=y_data.max(), s=f" Gate:{round(self.access_gate(),3)}", color="blue")
+            self.fig.draw()
