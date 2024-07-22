@@ -124,6 +124,11 @@ class ScatterInputWidget(QWidget):
         self.scatter_canvas = PlotCanvas(self.model)
         self.layout().addWidget(self.scatter_canvas.fig, 3, 0, 1, 4)
 
+        # Initialize gates dataframe
+        sample_marker_combinations = list(product(self.model.regionprops_df["sample_id"].unique(), self.model.markers_image_indices.keys()))
+        self.model.gates = pd.DataFrame(sample_marker_combinations, columns=["sample_id", "marker_id"])
+        self.model.gates["gate_value"] = float(0)
+
         # slider
         self.slider_figure = Figure(figsize=(5, 1))
         self.slider_canvas = FigureCanvas(self.slider_figure)
@@ -140,11 +145,6 @@ class ScatterInputWidget(QWidget):
         plot_points_button = QPushButton("Plot Points")
         plot_points_button.clicked.connect(self.plot_points)
         self.layout().addWidget(plot_points_button, 6,0,1,1)
-
-        # Initialize gates dataframe
-        sample_marker_combinations = list(product(self.model.regionprops_df["sample_id"].unique(), self.model.markers_image_indices.keys()))
-        self.model.gates = pd.DataFrame(sample_marker_combinations, columns=["sample_id", "marker_id"])
-        self.model.gates["gate_value"] = float(0)
 
         # autosave path
         self.csv_path = None
@@ -201,6 +201,7 @@ class ScatterInputWidget(QWidget):
         self.scatter_canvas.ax.clear()
         self.scatter_canvas.plot_scatter_plot()
         self.scatter_canvas.fig.draw()
+        # self.scatter_canvas.update_vertical_line(self.access_gate())
 
 
     ###################
@@ -219,9 +220,9 @@ class ScatterInputWidget(QWidget):
                 layer.visible = False
 
         logger.info("Plotting points in Napari.")
-        logger.debug(f"self.model.active_sample: {self.model.active_sample}")
-        logger.debug(f"self.model.active_marker: {self.model.active_marker}")
-        logger.debug(f"self.model.current_gate: {self.model.current_gate}")
+        logger.debug(f"sample: {self.model.active_sample}")
+        logger.debug(f"marker: {self.model.active_marker}")
+        logger.debug(f"current_gate: {self.model.current_gate}")
 
         self.viewer.add_points(
             df[df[self.model.active_marker] > self.model.current_gate][["Y_centroid", "X_centroid"]],
@@ -243,18 +244,15 @@ class ScatterInputWidget(QWidget):
             self.model.gates = pd.read_csv(file_path)
 
         self.model.gates["sample_id"] = self.model.gates["sample_id"].astype(str)
-
         assert "sample_id" in self.model.gates.columns, "sample_id column not found in gates dataframe."
         assert "marker_id" in self.model.gates.columns, "marker_id column not found in gates dataframe."
         assert "gate_value" in self.model.gates.columns, "gate_value column not found in gates dataframe."
-
-        logger.debug(f"self.model.markers: {set(self.model.markers)}")
-        logger.debug(f"self.model.gates.marker_id.unique(): {set(self.model.gates.marker_id.unique())}")
-
         assert set(self.model.gates["sample_id"].unique()) == set(self.model.regionprops_df["sample_id"].unique()), "Samples do not match."
-        assert set(self.model.gates["marker_id"].unique()) == set(self.model.markers), "Markers don't match, pick the same quantification files."
+        assert set(self.model.gates["marker_id"].unique()) == set(self.model.markers_image_indices.keys()), "Markers don't match, pick the same quantification files."
+
         self.csv_path = file_path
         logger.debug(f"Gates dataframe from {file_path} loaded and checked.")
+        # self.scatter_canvas.update_vertical_line(self.access_gate()) #not working
         napari_notification(f"Gates dataframe loaded from: {file_path}")
 
     def select_save_directory(self):
@@ -319,7 +317,6 @@ class ScatterInputWidget(QWidget):
         df = self.model.regionprops_df
         df = df[df["sample_id"] == self.model.active_sample]
         if self.model.log_scale:
-            # df = df[df[self.model.active_marker]] + 1
             marker_values = df[self.model.active_marker] + 1
             min = np.log10(marker_values.min())
             max = np.log10(marker_values.max())
@@ -335,23 +332,24 @@ class ScatterInputWidget(QWidget):
 
     def slider_changed(self, val):
         """Update the current gate value and the vertical line on the scatter plot."""
+        logger.debug(f"Slider changed to {val}. log10? {self.model.log_scale}")
         if self.model.log_scale:
             self.model._current_gate = 10**val
-            self.scatter_canvas.update_vertical_line(10**val)
         elif not self.model.log_scale:
             self.model._current_gate = val
-            self.scatter_canvas.update_vertical_line(val)
-        self.scatter_canvas.fig.draw()
+        self.scatter_canvas.update_vertical_line(val) #not working
+        # self.scatter_canvas.fig.draw()
 
     def update_slider(self):
         """Update the slider with the min, max, median and step values."""
         logger.debug("Updating slider.")
         min, max, init, step = self.get_min_max_median_step()
-        if self.model.current_gate:
-            init = np.log10(self.model.current_gate) if self.model.log_scale else self.model.current_gate
+        # if self.access_gate() not in [0.0, None, np.nan]:
+        #     init = np.log10(self.access_gate()) if self.model.log_scale else self.access_gate()
         self.slider_ax.clear()
         self.slider = Slider(self.slider_ax, "Gate", min, max, valinit=init, valstep=step, color="black")
         self.slider.on_changed(self.slider_changed)
+        # self.scatter_canvas.update_vertical_line(self.access_gate())
         self.slider_canvas.draw()
 
     ##########################
@@ -388,7 +386,7 @@ class ScatterInputWidget(QWidget):
         self.viewer.add_image(self._image[marker_index], name=self.model.active_marker + "_" + self.model.active_sample, blending="additive", colormap="green")
 
     def _on_sample_changed(self):
-        """Set active sample, load mask,image, and ref."""
+        """Set active sample, load mask, image, and ref."""
         self.model.active_sample = self.sample_selection_dropdown.currentText()
         self._clear_layers()
         self._read_marker_image()
@@ -402,8 +400,10 @@ class ScatterInputWidget(QWidget):
     def _on_marker_changed(self):
         """Set active marker, load only new marker image."""
         self.model.active_marker = self.marker_selection_dropdown.currentText()
-        for layer in self.viewer.layers:
-            if isinstance(layer, Image) and "REF:" not in layer.name:
+        for layer in list(self.viewer.layers):
+            if isinstance(layer, Image) and "REF:" not in layer.name:  # noqa: SIM114
+                self.viewer.layers.remove(layer)
+            elif isinstance(layer, Points):
                 self.viewer.layers.remove(layer)
         self._read_marker_image()
         self._load_image()
@@ -437,7 +437,6 @@ class ScatterInputWidget(QWidget):
     def natural_sort_key(self, s):
         """Key function for natural sorting."""
         import re
-
         return [int(text) if text.isdigit() else text.lower() for text in re.split(r"(\d+)", s)]
 
     @property
@@ -467,6 +466,13 @@ class PlotCanvas:
         self.ax.set_title("Scatter plot")
         self.plot_scatter_plot()
 
+    def update_vertical_line(self, x_position):
+        """Update the position of the vertical line."""
+        if self.model.log_scale:
+            x_position = 10**(x_position)
+        self.ax.lines[0].set_xdata(x=[x_position])
+        self.fig.draw()
+
     @property
     def model(self) -> DataModel:
         """The dataclass model that stores information required for cell_gating."""
@@ -493,9 +499,11 @@ class PlotCanvas:
             self.ax.scatter(x=x_data, y=y_data,
                 color="steelblue", ec="white",
                 lw=0.1, alpha=1.0, s=80000 / int(df.shape[0]))
+
         elif self.model.plot_type == "hexbin" and self.model.log_scale is True:
             self.ax.hexbin(x=x_data, y=y_data, gridsize=50, cmap="viridis",
                 bins="log",xscale="log", yscale="log")
+
         elif self.model.plot_type == "hexbin" and self.model.log_scale is False:
             self.ax.hexbin(x=x_data, y=y_data, gridsize=50, cmap="viridis")
 
@@ -504,11 +512,5 @@ class PlotCanvas:
         self.ax.set_ylabel(self.model.active_y_axis)
         self.ax.set_xlabel(f"{self.model.active_marker}")
 
-        if self.model.current_gate > 0.0:
-            self.ax.axvline(x=self.model.current_gate, color="red", linewidth=1.0, linestyle="--")
-        else:
-            self.ax.axvline(x=1, color="red", linewidth=1.0, linestyle="--")
-
-    def update_vertical_line(self, x_position):
-        """Update the position of the vertical line."""
-        self.ax.lines[0].set_xdata([x_position, x_position])
+        # Initate vertical line
+        self.ax.axvline(x=1.0, color="red", linewidth=1.0, linestyle="--")
