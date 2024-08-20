@@ -35,8 +35,6 @@ from cell_gater.utils.misc import napari_notification
 logger.remove()
 logger.add(sys.stdout, format="<green>{time:HH:mm:ss.SS}</green> | <level>{level}</level> | {message}")
 
-#Good to have features
-
 # Ideas to maybe implement
 # TODO dynamic plotting of points on top of created polygons
 # TODO save plots as images for QC, perhaps when saving gates run plotting function to go through all samples and markers and save plots

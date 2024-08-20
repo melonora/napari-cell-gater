@@ -25,6 +25,11 @@ from cell_gater.widgets.scatter_widget import ScatterInputWidget
 
 import skimage.io
 import numpy
+import pandas as pd
+import sys
+from loguru import logger
+logger.remove()
+logger.add(sys.stdout, format="<green>{time:HH:mm:ss.SS}</green> | <level>{level}</level> | {message}")
 
 class SampleWidget(QWidget):
     """Sample widget for loading required data."""
@@ -53,22 +58,27 @@ class SampleWidget(QWidget):
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 
         # object, int row, int column, int rowSpan = 1, int columnSpan = 1
-        load_label = QLabel("Load data:")
-        self.layout().addWidget(load_label, 0, 0, 1, 1)
+        # load_label = QLabel("Load data:")
+        # self.layout().addWidget(load_label, 0, 0, 1, 1)
         # Open sample directory dialog
         self.load_samples_button = QPushButton("Load quantifications dir")
         self.load_samples_button.clicked.connect(self._open_sample_dialog)
-        self.layout().addWidget(self.load_samples_button, 0, 1, 1, 1)
+        self.layout().addWidget(self.load_samples_button, 0, 0, 1, 1)
 
         # Open image directory dialog
         self.load_image_dir_button = QPushButton("Load image dir")
         self.load_image_dir_button.clicked.connect(self._open_image_dir_dialog)
-        self.layout().addWidget(self.load_image_dir_button, 0, 2, 1, 1)
+        self.layout().addWidget(self.load_image_dir_button, 0, 1, 1, 1)
 
         # Open mask directory dialog
         self.load_mask_dir_button = QPushButton("Load mask dir")
         self.load_mask_dir_button.clicked.connect(self._open_mask_dir_dialog)
-        self.layout().addWidget(self.load_mask_dir_button, 0, 3, 1, 1)
+        self.layout().addWidget(self.load_mask_dir_button, 0, 2, 1, 1)
+
+        # Open manual channel mapping csv
+        self.load_manual_channel_mapping_button = QPushButton("Opt: Load channel map")
+        self.load_manual_channel_mapping_button.clicked.connect(self._open_manual_channel_mapping)
+        self.layout().addWidget(self.load_manual_channel_mapping_button, 0, 3, 1, 1)
 
         # The lower bound marker column dropdown
         lower_col = QLabel("Select lowerbound marker column:")
@@ -129,6 +139,20 @@ class SampleWidget(QWidget):
             QFileDialog.Options(),
         )
 
+    def _file_dialog(self):
+        """Open dialog for a user to select a file."""
+        dlg = QFileDialog()
+        hist = get_open_history()
+        dlg.setHistory(hist)
+        options = QFileDialog.Options()
+        return dlg.getOpenFileName(
+            self,
+            "Select file",
+            hist[0],
+            "CSV Files (*.csv)",
+            options=options,
+        )
+
     def _open_sample_dialog(self, folder: str | None = None):
         """Open directory file dialog for regionprop directory."""
         if not folder:
@@ -151,6 +175,14 @@ class SampleWidget(QWidget):
 
         if folder not in {"", None}:
             self._set_mask_paths(folder)
+
+    def _open_manual_channel_mapping(self):
+        """Open dialog for a user to pass on a csv file."""
+        logger.info("Opening manual channel mapping file.")
+        file_path, _ = self._file_dialog()
+        if file_path:
+            self.model.manual_channel_mapping = file_path
+            logger.info(f"Manual channel mapping file loaded: {file_path}")
 
     def _set_image_paths(self, folder: str) -> None:
         """Set the image paths in the DataModel."""
@@ -244,7 +276,7 @@ class SampleWidget(QWidget):
         self.model.sample_image_mapping = {i.stem.rstrip(".ome") if ".ome" in i.stem else i.stem: i for i in self.model.image_paths}
         self.model.sample_mask_mapping = {i.stem.rstrip(".ome") if ".ome" in i.stem else i.stem: i for i in self.model.mask_paths}
 
-        # Selecting the markers of interest, and 
+        # Selecting the markers of interest
         columns = list(self.model.regionprops_df.columns)[1:]
         lowerbound_index = columns.index(self.model.lower_bound_marker)
         upperbound_index = columns.index(self.model.upper_bound_marker)
@@ -260,13 +292,27 @@ class SampleWidget(QWidget):
         # Find num of channels in image, maybe more efficient way, WSI would take very long
         image_shape = skimage.io.imread(self.model.image_paths[0]).shape
         n_channels = image_shape[0]
+        logger.info(f"Number of channels in image: {n_channels}")
 
         # Mapping df columns to image channels
         self.model.markers_image_indices = {}
-        for metric_round in range(0, len(columns)//n_channels):
-            metric_index = metric_round * n_channels
-            for channel_index in range(1, n_channels+1):
-                self.model.markers_image_indices[columns[int(metric_index) + int(channel_index)-1]] = channel_index-1
+
+        if self.model.manual_channel_mapping:
+            # load manual csv
+            df = pd.read_csv(self.model.manual_channel_mapping)
+            df["channel_in_matrix"] = ~df["csv_column_name"].isnull()
+
+            for index, row in df.iterrows():
+                if row["channel_in_matrix"]:
+                    self.model.markers_image_indices[row["csv_column_name"]] = row["channel_index"] -1
+        else:
+            assert n_channels < len(columns), "Number of channels in image is larger than number of columns in matrix."
+            for metric_round in range(0, len(columns)//n_channels):
+                metric_index = metric_round * n_channels
+                for channel_index in range(1, n_channels+1):
+                    self.model.markers_image_indices[columns[int(metric_index) + int(channel_index)-1]] = channel_index-1
+
+        logger.info(f"markers_image_indices: {self.model.markers_image_indices}")
 
         self._scatter_widget = ScatterInputWidget(self.model, self.viewer)
         self.viewer.window.add_dock_widget(

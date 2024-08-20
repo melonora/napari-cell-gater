@@ -37,6 +37,7 @@ class DataModel:
 
     _gates: pd.DataFrame = field(default_factory=pd.DataFrame, init=False)
     _current_gate: float = field(default_factory=float, init=False)
+    _manual_channel_mapping: pd.DataFrame = field(default_factory=pd.DataFrame, init=False)
 
     @property
     def active_ref_marker(self):
@@ -55,6 +56,15 @@ class DataModel:
     @gates.setter
     def gates(self, gates: pd.DataFrame) -> None:
         self._gates = gates
+
+    @property
+    def manual_channel_mapping(self):
+        """The manual channel mapping dataframe."""
+        return self._manual_channel_mapping
+
+    @manual_channel_mapping.setter
+    def manual_channel_mapping(self, manual_channel_mapping: pd.DataFrame) -> None:
+        self._manual_channel_mapping = manual_channel_mapping
 
     @property
     def current_gate(self) -> float:
