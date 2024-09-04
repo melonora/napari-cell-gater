@@ -37,7 +37,7 @@ class DataModel:
 
     _gates: pd.DataFrame = field(default_factory=pd.DataFrame, init=False)
     _current_gate: float = field(default_factory=float, init=False)
-    _manual_channel_mapping: pd.DataFrame = field(default_factory=pd.DataFrame, init=False)
+    _manual_channel_mapping: str | None = field(default=None, init=False)
 
     @property
     def active_ref_marker(self):
@@ -63,7 +63,7 @@ class DataModel:
         return self._manual_channel_mapping
 
     @manual_channel_mapping.setter
-    def manual_channel_mapping(self, manual_channel_mapping: pd.DataFrame) -> None:
+    def manual_channel_mapping(self, manual_channel_mapping:str) -> None:
         self._manual_channel_mapping = manual_channel_mapping
 
     @property

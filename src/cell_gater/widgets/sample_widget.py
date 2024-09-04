@@ -298,6 +298,7 @@ class SampleWidget(QWidget):
         self.model.markers_image_indices = {}
 
         if self.model.manual_channel_mapping:
+            logger.info("self.model.manual_channel_mapping is TRUE")
             # load manual csv
             df = pd.read_csv(self.model.manual_channel_mapping)
             df["channel_in_matrix"] = ~df["csv_column_name"].isnull()
