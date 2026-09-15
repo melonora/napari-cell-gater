@@ -6,9 +6,26 @@ maintainers = [
     {name = "Jose Nimo", email = "nimojose@gmail.com"},
     {name = "Wouter-Michiel Vierdag", email = "w-mv@hotmail.com"}]
 name = "napari-cell-gater"
+description = "A napari plugin to perform cell marker gating for multiplexed immunofluorescent imaging"
 readme = "README.md"
 requires-python = ">= 3.10"
-version = "0.5.1"
+version = "0.5.2"
+license = "BSD-3-Clause"
+license-files = ["LICENSE"]
+keywords = ["napari", "gating", "imaging", "proteomics", "opendvp"]
+
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Framework :: napari",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Image Processing",
+]
 
 dependencies = [
     "numpy",
@@ -20,6 +37,7 @@ dependencies = [
     "dask-image",
     "matplotlib",
     "pandas",
+    "packaging",
 ]
 
 [project.optional-dependencies]
@@ -46,10 +64,9 @@ dev = {features = ["dev"],solve-group = "dev"}
 [project.urls]
 "Homepage" = "https://github.com/CosciaLab/napari-cell-gater"
 "Source" = "https://github.com/CosciaLab/napari-cell-gater"
-
-# [build-system]
-# build-backend = "hatchling.build"
-# requires = ["hatchling"]
+"Bug Tracker" = "https://github.com/CosciaLab/napari-cell-gater/issues"
+"User Support" = "https://github.com/CosciaLab/napari-cell-gater/issues"
+"Documentation" = "https://github.com/CosciaLab/napari-cell-gater#readme"
 
 [tool.pixi.workspace]
 channels = ["conda-forge"]
@@ -67,7 +84,7 @@ docs = "sphinx-build -b html docs/source docs/build"
 "napari-cell-gater" = "cell_gater:napari.yaml"
 
 [build-system]
-requires = ["setuptools", "wheel"]
+requires = ["setuptools>=77", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
@@ -79,20 +96,12 @@ where = ["src"]
 [tool.setuptools.package-data]
 "*" = ["*.yaml"]
 
-# [project.entry-points."napari.manifest"]
-# napari-hello = "napari_hello:napari.yaml"
-
 
 ########### RUFF #############
 
 [tool.ruff]
 line-length = 120
 target-version = "py311"
-
-[tool.ruff.lint]
-per-file-ignores."*/__init__.py" = [ "F401" ]
-per-file-ignores."docs/*" = [ "I" ]
-per-file-ignores."tests/*" = [ "D" ]
 
 exclude = [
     ".git",
@@ -108,6 +117,11 @@ exclude = [
     "notebooks",
     "tests/data",
 ]
+
+[tool.ruff.lint]
+per-file-ignores."*/__init__.py" = [ "F401" ]
+per-file-ignores."docs/*" = [ "I" ]
+per-file-ignores."tests/*" = [ "D" ]
 
 select = [
   "B",      # flake8-bugbear
