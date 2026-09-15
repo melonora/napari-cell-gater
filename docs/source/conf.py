@@ -10,8 +10,8 @@ project = 'napari-cell-gater'
 copyright = '2025, Jose Nimo'
 author = 'Jose Nimo'
 
-version = '0.4.0'
-release = '0.4.0'
+version = '0.5.2'
+release = '0.5.2'
 
 import os
 import sys
